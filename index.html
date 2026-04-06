@@ -240,8 +240,72 @@ var S={
 // ══════════════════════════════════════════════════════════════════
 // localStorage
 // ══════════════════════════════════════════════════════════════════
-function lsSave(){try{localStorage.setItem('bdm_roster',JSON.stringify(S.roster));localStorage.setItem('bdm_theme',S.theme);localStorage.setItem('bdm_gnames',JSON.stringify(S.groupNames));}catch(e){}}
-function lsLoad(){try{var r=localStorage.getItem('bdm_roster');if(r)S.roster=JSON.parse(r);var t=localStorage.getItem('bdm_theme');if(t)S.theme=t;var g=localStorage.getItem('bdm_gnames');if(g)S.groupNames=JSON.parse(g);}catch(e){}}
+// ── Firebase 동적 로드 ────────────────────────────────────────────
+var firebaseConfig={
+  apiKey:"AIzaSyDwJb2U13k5aBgk5toecGp-j025lupdd00",
+  authDomain:"badminton-e0788.firebaseapp.com",
+  databaseURL:"https://badminton-e0788-default-rtdb.firebaseio.com",
+  projectId:"badminton-e0788",
+  storageBucket:"badminton-e0788.firebasestorage.app",
+  messagingSenderId:"936278304402",
+  appId:"1:936278304402:web:bf6799647a9a77663ba84b"
+};
+var db=null;
+
+function fbSaveRoster(){
+  if(!db){lsRosterSave();return;}
+  db.ref('roster').set(S.roster).catch(function(e){toast('저장 실패');});
+}
+function fbSaveGnames(){
+  if(!db){return;}
+  db.ref('groupNames').set(S.groupNames).catch(function(){});
+}
+
+// 로컬 폴백 (오프라인/Firebase 미연결 시)
+function lsRosterSave(){try{localStorage.setItem('bdm_roster',JSON.stringify(S.roster));}catch(e){}}
+function lsRosterLoad(){try{var r=localStorage.getItem('bdm_roster');if(r)S.roster=JSON.parse(r);}catch(e){}}
+
+// 테마만 localStorage
+function lsSave(){try{localStorage.setItem('bdm_theme',S.theme);}catch(e){}}
+function lsLoad(){
+  try{var t=localStorage.getItem('bdm_theme');if(t)S.theme=t;}catch(e){}
+  lsRosterLoad(); // Firebase 연결 전까지 로컬 명단 사용
+}
+
+// Firebase 실시간 리스너
+function fbListen(){
+  db.ref('roster').on('value',function(snap){
+    var data=snap.val();
+    S.roster=data?data:[];
+    render();
+  });
+  db.ref('groupNames').on('value',function(snap){
+    var data=snap.val();
+    if(data&&Array.isArray(data))S.groupNames=data;
+    render();
+  });
+}
+
+// Firebase SDK를 동적으로 로드
+function loadFirebase(){
+  var s1=document.createElement('script');
+  s1.src='https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js';
+  s1.onload=function(){
+    var s2=document.createElement('script');
+    s2.src='https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js';
+    s2.onload=function(){
+      try{
+        firebase.initializeApp(firebaseConfig);
+        db=firebase.database();
+        fbListen();
+      }catch(e){toast('Firebase 연결 실패 — 로컬 모드로 실행');}
+    };
+    s2.onerror=function(){toast('Firebase 로드 실패');};
+    document.head.appendChild(s2);
+  };
+  s1.onerror=function(){toast('Firebase 로드 실패');};
+  document.head.appendChild(s1);
+}
 
 // ══════════════════════════════════════════════════════════════════
 // 유틸
@@ -945,8 +1009,8 @@ function render(){
     if(S.attendSearch){asrchEl.focus();asrchEl.setSelectionRange(asrchEl.value.length,asrchEl.value.length);}
   }
   var gn1el=document.getElementById('gn1'),gn2el=document.getElementById('gn2');
-  if(gn1el){gn1el.addEventListener('input',function(e){S.groupNames[0]=e.target.value||'1그룹';lsSave();});}
-  if(gn2el){gn2el.addEventListener('input',function(e){S.groupNames[1]=e.target.value||'2그룹';lsSave();});}
+  if(gn1el){gn1el.addEventListener('input',function(e){S.groupNames[0]=e.target.value||'1그룹';fbSaveGnames();});}
+  if(gn2el){gn2el.addEventListener('input',function(e){S.groupNames[1]=e.target.value||'2그룹';fbSaveGnames();});}
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -969,14 +1033,14 @@ function act(a,d){
     for(var i=0;i<S.roster.length;i++)if(S.roster[i].name===n){dup=true;break;}
     if(!n||dup)return;
     S.roster.push({name:n,gender:S.rAddGender,level:S.rAddLevel});
-    S.rAddName='';lsSave();render();
+    S.rAddName='';fbSaveRoster();
   }
   else if(a==='rmp'){
     var idx=parseInt(d.i);
     delete S.selected[S.roster[idx].name];
     S.roster.splice(idx,1);
     if(S.rEditIdx===idx)S.rEditIdx=-1;
-    lsSave();render();
+    fbSaveRoster();
   }
   else if(a==='redp'){var i=parseInt(d.i),p=S.roster[i];S.rEditIdx=i;S.rEditName=p.name;S.rEditGender=p.gender||'남';S.rEditLevel=p.level;render();}
   else if(a==='resg'){S.rEditGender=d.v;render();}
@@ -991,10 +1055,10 @@ function act(a,d){
     var oldName=S.roster[i].name;
     if(S.selected[oldName]){delete S.selected[oldName];S.selected[newName]=true;}
     S.roster[i]={name:newName,gender:S.rEditGender,level:S.rEditLevel};
-    S.rEditIdx=-1;lsSave();render();
+    S.rEditIdx=-1;fbSaveRoster();
   }
   else if(a==='recx'){S.rEditIdx=-1;render();}
-  else if(a==='rclr'){if(!confirm('전체 명단을 삭제할까요?'))return;S.roster=[];S.selected={};lsSave();render();}
+  else if(a==='rclr'){if(!confirm('전체 명단을 삭제할까요?'))return;S.roster=[];S.selected={};fbSaveRoster();}
 
   // ── 참석자 선택 ───────────────────────────────────────────────
   else if(a==='srchclr'){S.attendSearch='';render();}
@@ -1077,9 +1141,10 @@ document.addEventListener('click',function(e){
 });
 
 // ── 시작 ─────────────────────────────────────────────────────────
-lsLoad();
+lsLoad(); // 테마 + 로컬 명단 로드
 document.body.classList.toggle('light',S.theme==='light');
 render();
+loadFirebase(); // Firebase 동적 로드 → 연결 후 자동 re-render
 </script>
 </body>
 </html>
