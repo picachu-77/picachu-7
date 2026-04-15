@@ -230,8 +230,8 @@ var S={
   standby:null, teams:[], matches:[],
   pairMode:'random', history:[], round:1, dup:false,
   numGames:0,    // 0 = 전체, 양수 = 해당 게임 수만
-  matchMode:'roundrobin', // 'roundrobin' | 'mixed' | 'rotation'
-  numRotations:3, // 로테이션 세트 수
+  matchMode:'rotation', // 'rotation' (전체리그·그룹혼합 제거)
+  numRotations:10, // 로테이션 세트 수 (기본 10세트)
   blockInfo:[],   // [{blockNum, standby, dup}] — 로테이션 세트 정보
   groups:{},     // {teamId: 1 or 2} — 혼합 모드 그룹 배정
   restCount:{},  // {이름: 쉰 횟수} — 세션 내 누적
@@ -261,6 +261,19 @@ function fbSaveGnames(){
   db.ref('groupNames').set(S.groupNames).catch(function(){});
 }
 
+// 대진표 세션 저장 (teams, matches, blockInfo, 설정 포함)
+function fbSaveSession(){
+  if(!db) return;
+  var session={
+    teams:S.teams, matches:S.matches, blockInfo:S.blockInfo,
+    round:S.round, pairMode:S.pairMode, matchMode:S.matchMode,
+    numGames:S.numGames, selected:S.selected, playerGroups:S.playerGroups,
+    standby:S.standby, restCount:S.restCount, history:S.history,
+    dup:S.dup, mStep:S.mStep, groupNames:S.groupNames
+  };
+  db.ref('session').set(session).catch(function(){});
+}
+
 // 로컬 폴백 (오프라인/Firebase 미연결 시)
 function lsRosterSave(){try{localStorage.setItem('bdm_roster',JSON.stringify(S.roster));}catch(e){}}
 function lsRosterLoad(){try{var r=localStorage.getItem('bdm_roster');if(r)S.roster=JSON.parse(r);}catch(e){}}
@@ -269,7 +282,7 @@ function lsRosterLoad(){try{var r=localStorage.getItem('bdm_roster');if(r)S.rost
 function lsSave(){try{localStorage.setItem('bdm_theme',S.theme);}catch(e){}}
 function lsLoad(){
   try{var t=localStorage.getItem('bdm_theme');if(t)S.theme=t;}catch(e){}
-  lsRosterLoad(); // Firebase 연결 전까지 로컬 명단 사용
+  lsRosterLoad();
 }
 
 // Firebase 실시간 리스너
@@ -283,6 +296,23 @@ function fbListen(){
     var data=snap.val();
     if(data&&Array.isArray(data))S.groupNames=data;
     render();
+  });
+  // 대진표 세션 불러오기 (최초 1회)
+  db.ref('session').once('value',function(snap){
+    var d=snap.val();
+    if(!d) return;
+    if(d.teams&&d.teams.length>0){
+      S.teams=d.teams; S.matches=d.matches||[]; S.blockInfo=d.blockInfo||[];
+      S.round=d.round||1; S.pairMode=d.pairMode||'random';
+      S.matchMode=d.matchMode||'rotation'; S.numGames=d.numGames||0;
+      S.selected=d.selected||{}; S.playerGroups=d.playerGroups||{};
+      S.standby=d.standby||null; S.restCount=d.restCount||{};
+      S.history=d.history||[]; S.dup=d.dup||false;
+      S.mStep=d.mStep||2;
+      if(d.groupNames&&Array.isArray(d.groupNames)) S.groupNames=d.groupNames;
+      render();
+      toast('이전 대진표를 불러왔어요 😊');
+    }
   });
 }
 
@@ -410,40 +440,65 @@ function mkRotationSchedule(){
   var allTeams=[],allMatches=[],blockInfo=[];
   var teamId=0,matchId=0;
 
-  // 세트당 게임 수 = 참석자 수 / 4 (모두 동시에 뜀)
-  var gamesPerSet=Math.max(1,Math.floor(ps.length/4));
-  // 게임 수 → 세트 수 자동 계산 (공란이면 기본 3세트)
-  var numRot=S.numGames>0?Math.max(1,Math.ceil(S.numGames/gamesPerSet)):3;
+  // 1·2그룹 구분 여부 확인
+  var hasGroups=false;
+  var g1ps=ps.filter(function(p){return (S.playerGroups[p.name]||1)===1;});
+  var g2ps=ps.filter(function(p){return (S.playerGroups[p.name]||1)===2;});
+  if(g1ps.length>=2&&g2ps.length>=2) hasGroups=true;
+
+  // 세트당 게임 수: 그룹 모드면 각 그룹에서 동시 진행 게임 합산
+  var gamesPerSet=hasGroups
+    ?Math.floor(g1ps.length/4)+Math.floor(g2ps.length/4)
+    :Math.max(1,Math.floor(ps.length/4));
+  var numRot=S.numGames>0?Math.max(1,Math.ceil(S.numGames/gamesPerSet)):4;
+
   for(var b=0;b<numRot;b++){
-    var isOdd=ps.length%2,ac=ps,sb=null;
-    if(isOdd){
-      sb=pickSB(ps,tempSB,tempRC);
-      ac=ps.filter(function(p){return p.name!==sb.name;});
-      if(sb) tempRC[sb.name]=(tempRC[sb.name]||0)+1;
-      tempSB=sb;
-    }
-    // 최소 4명(2팀) 필요 — 그 미만이면 블록 스킵
-    if(ac.length<4){blockInfo.push({blockNum:b+1,standby:sb,dup:false,skip:true,modeLabel:''});continue;}
-    // 순환 모드: 블록마다 다른 팀 구성 방식
     var blockMode=S.pairMode==='cycle'?getCycleMode(b):S.pairMode;
     var blockLabel=S.pairMode==='cycle'?getCycleLabel(b):'';
-    var r=buildWithMode(ac,tempH,blockMode);
-    var blockTeams=r.teams;
 
-    for(var i=0;i<blockTeams.length;i++){
-      var kk=pk(blockTeams[i].p1,blockTeams[i].p2);
-      if(tempH.indexOf(kk)===-1) tempH.push(kk);
-      blockTeams[i].id=teamId++;
-      blockTeams[i].blockNum=b+1;
-      allTeams.push(blockTeams[i]);
+    if(hasGroups){
+      // ── 그룹 모드: 각 그룹 안에서 팀 구성 → 같은 그룹끼리 매치 ──
+      var r1=buildWithMode(g1ps,tempH,blockMode);
+      var r2=buildWithMode(g2ps,tempH,blockMode);
+      var bt1=r1.teams,bt2=r2.teams;
+      var dup=r1.dup||r2.dup;
+
+      // 히스토리 + ID 부여
+      for(var i=0;i<bt1.length;i++){var kk=pk(bt1[i].p1,bt1[i].p2);if(tempH.indexOf(kk)===-1)tempH.push(kk);bt1[i].id=teamId++;bt1[i].blockNum=b+1;bt1[i].grp=1;allTeams.push(bt1[i]);}
+      for(var i=0;i<bt2.length;i++){var kk=pk(bt2[i].p1,bt2[i].p2);if(tempH.indexOf(kk)===-1)tempH.push(kk);bt2[i].id=teamId++;bt2[i].blockNum=b+1;bt2[i].grp=2;allTeams.push(bt2[i]);}
+
+      // 1그룹팀끼리 매치 (인접 순서로)
+      for(var i=0;i<bt1.length-1;i+=2){
+        allMatches.push({id:matchId++,t1:bt1[i].id,t2:bt1[i+1].id,blockNum:b+1});
+      }
+      // 2그룹팀끼리 매치 (인접 순서로)
+      for(var i=0;i<bt2.length-1;i+=2){
+        allMatches.push({id:matchId++,t1:bt2[i].id,t2:bt2[i+1].id,blockNum:b+1});
+      }
+      blockInfo.push({blockNum:b+1,standby:null,dup:dup,skip:false,modeLabel:blockLabel});
+    } else {
+      // ── 일반 모드: 전체 선수 중 팀 구성 ──
+      var isOdd=ps.length%2,ac=ps,sb=null;
+      if(isOdd){
+        sb=pickSB(ps,tempSB,tempRC);
+        ac=ps.filter(function(p){return p.name!==sb.name;});
+        if(sb) tempRC[sb.name]=(tempRC[sb.name]||0)+1;
+        tempSB=sb;
+      }
+      if(ac.length<4){blockInfo.push({blockNum:b+1,standby:sb,dup:false,skip:true,modeLabel:''});continue;}
+      var r=buildWithMode(ac,tempH,blockMode);
+      var blockTeams=r.teams;
+      for(var i=0;i<blockTeams.length;i++){
+        var kk=pk(blockTeams[i].p1,blockTeams[i].p2);
+        if(tempH.indexOf(kk)===-1) tempH.push(kk);
+        blockTeams[i].id=teamId++;blockTeams[i].blockNum=b+1;
+        allTeams.push(blockTeams[i]);
+      }
+      for(var i=0;i<blockTeams.length-1;i+=2){
+        allMatches.push({id:matchId++,t1:blockTeams[i].id,t2:blockTeams[i+1].id,blockNum:b+1});
+      }
+      blockInfo.push({blockNum:b+1,standby:sb,dup:r.dup,skip:false,modeLabel:blockLabel});
     }
-    // 동급 대결: bSameLevel이 4명씩 묶어서 팀을 만들므로 인접팀끼리 대결이 자동으로 비슷한 수준
-    // 그 외: 기본 순서(랜덤) 유지
-    var pairedTeams=blockTeams.slice();
-    for(var i=0;i<pairedTeams.length-1;i+=2){
-      allMatches.push({id:matchId++,t1:pairedTeams[i].id,t2:pairedTeams[i+1].id,blockNum:b+1});
-    }
-    blockInfo.push({blockNum:b+1,standby:sb,dup:r.dup,skip:false,modeLabel:blockLabel});
   }
   return{teams:allTeams,matches:allMatches,blockInfo:blockInfo};
 }
@@ -584,15 +639,32 @@ function generateResultImage(){
 
   canvas.toBlob(function(blob){
     var file=new File([blob],'배드민턴대진표.png',{type:'image/png'});
+    // 아이폰/안드로이드: 파일 공유 → 사진 앱에 저장 가능
     if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
-      navigator.share({title:'피카츄의 배드민턴매치 대진표',files:[file]}).catch(function(){dlBlob(blob);});
-    } else { dlBlob(blob); }
+      navigator.share({
+        title:'피카츄의 배드민턴매치 대진표',
+        files:[file]
+      }).then(function(){
+        toast('이미지 저장됐어요!');
+      }).catch(function(e){
+        if(e.name!=='AbortError') dlBlob(blob);
+      });
+    } else {
+      // PC or 미지원 브라우저: 다운로드
+      dlBlob(blob);
+    }
   },'image/png');
 }
 function dlBlob(blob){
   var url=URL.createObjectURL(blob);
-  var a=document.createElement('a');a.download='배드민턴결과.png';a.href=url;a.click();
-  setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  var a=document.createElement('a');
+  a.download='배드민턴대진표.png';
+  a.href=url;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},2000);
+  toast('📸 이미지 저장됐어요!');
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -842,16 +914,7 @@ function mStep2Html(){
       +'</button>';
   }
 
-  // ── 대진 방식 버튼 ──
-  var mmBtns='';
-  var mmList=[
-    {key:'roundrobin',lb:'🏆 전체 리그',   ds:'모두 서로 한 번씩'},
-    {key:'mixed',     lb:'⚔️ 그룹 혼합',   ds:'그룹 내+간 경기'},
-    {key:'rotation',  lb:'🔄 로테이션',     ds:'세트마다 팀 변경'}
-  ];
-  for(var i=0;i<mmList.length;i++){var mm=mmList[i],ac=S.matchMode===mm.key;mmBtns+='<button class="mbtn '+(ac?'active':'')+'" data-a="mmode" data-v="'+mm.key+'" style="min-height:44px;padding:7px 10px"><div class="mbtn-lbl" style="font-size:11px">'+mm.lb+'</div><div class="mbtn-desc" style="font-size:10px">'+mm.ds+'</div></button>';}
-
-  // ── 게임수 (로테이션도 게임 수로 통일) ──
+  // ── 게임수 ──
   var selCnt=Object.keys(S.selected).filter(function(k){return S.selected[k];}).length;
   var gps=Math.floor(selCnt/4); // 세트당 동시 게임 수 (8명=2, 12명=3...)
   var ngv=S.numGames>0?S.numGames:'';
@@ -862,8 +925,8 @@ function mStep2Html(){
   }
   var countRow='<div style="display:flex;align-items:center;gap:6px">'
     +'<span style="font-size:12px;color:var(--muted);white-space:nowrap">게임 수</span>'
-    +'<input id="ngm" class="inp" type="number" min="1" inputmode="numeric" placeholder="'+(isRot?'입력 (기본 '+gps*3+'게임)':'전체')+'" value="'+ngv+'" style="flex:1;padding:8px 10px;font-size:15px">'
-    +(isRot?rotHint:'<button class="btn gho" data-a="ngmclr" style="padding:8px 12px;font-size:12px;min-height:40px">전체</button>')
+    +'<input id="ngm" class="inp" type="number" min="1" inputmode="numeric" placeholder="기본 '+(gps*4)+'게임 (4세트)" value="'+ngv+'" style="flex:1;padding:8px 10px;font-size:15px">'
+    +(isRot?rotHint:'')
   +'</div>';
 
   // ── 알림 ──
@@ -895,10 +958,11 @@ function mStep2Html(){
     }
 
     var matchTypeBadge='';
-    if(S.matchMode==='mixed'){
-      var g1=S.groups[m.t1],g2=S.groups[m.t2];
-      if(g1!==g2){matchTypeBadge='<span style="font-size:10px;font-weight:800;padding:1px 6px;border-radius:6px;background:rgba(200,241,53,.15);border:1px solid rgba(200,241,53,.35);color:var(--lime)">혼합</span>';}
-      else{var gc=g1===1?'#4fc3f7':'#f48fb1';matchTypeBadge='<span style="font-size:10px;font-weight:800;padding:1px 6px;border-radius:6px;background:'+gc+'20;border:1px solid '+gc+'40;color:'+gc+'">'+S.groupNames[g1-1]+'</span>';}
+    // 그룹 모드: 팀에 grp 속성이 있으면 어느 그룹 경기인지 표시
+    if(t1&&t2&&t1.grp&&t2.grp){
+      var gc=t1.grp===1?'#4fc3f7':'#f48fb1';
+      var gLabel=S.groupNames[t1.grp-1];
+      matchTypeBadge='<span style="font-size:10px;font-weight:800;padding:1px 7px;border-radius:6px;background:'+gc+'20;border:1px solid '+gc+'40;color:'+gc+'">'+gLabel+'</span>';
     }
     mCards+='<div class="mcard">'
       +'<div class="mbody">'+teamColHtml(t1,false)
@@ -919,9 +983,6 @@ function mStep2Html(){
     +'<div class="lbl" style="margin-bottom:5px">팀 구성 방식</div>'
     +'<div class="mgrid" style="margin-bottom:10px">'+modeBtns+'</div>'
     +cycleNtc
-    // 대진 방식
-    +'<div class="lbl" style="margin-bottom:5px">대진 방식</div>'
-    +'<div class="mgrid" style="margin-bottom:10px;grid-template-columns:1fr 1fr 1fr">'+mmBtns+'</div>'
     // 게임수/세트수
     +'<div style="margin-bottom:14px">'
       +'<div class="lbl" style="margin-bottom:4px">게임 수</div>'
@@ -1102,7 +1163,7 @@ function act(a,d){
     } else {
       S.matches=mkMatches(S.teams);S.blockInfo=[];
     }
-    render();
+    S.mStep=2;fbSaveSession();render();
   }
   else if(a==='mg3'){S.mStep=2;render();}
   else if(a==='mg2b'){S.mStep=2;render();}
@@ -1119,12 +1180,14 @@ function act(a,d){
     } else {
       S.matches=mkMatches(S.teams);S.blockInfo=[];
     }
-    S.mStep=2;render();
+    S.mStep=2;fbSaveSession();render();
   }
   else if(a==='rst'){
     S.standby=null;S.teams=[];S.matches=[];S.pairMode='random';
-    S.history=[];S.round=1;S.dup=false;S.numGames=0;S.matchMode='roundrobin';S.numRotations=3;S.groups={};S.groupNames=['1그룹','2그룹'];S.playerGroups={};S.restCount={};S.blockInfo=[];S.attendSearch='';
-    S.mStep=1;render();
+    S.history=[];S.round=1;S.dup=false;S.numGames=0;S.matchMode='rotation';S.numRotations=10;S.groups={};S.groupNames=['1그룹','2그룹'];S.playerGroups={};S.restCount={};S.blockInfo=[];S.attendSearch='';
+    S.mStep=1;
+    if(db) db.ref('session').remove(); // Firebase에서 세션 삭제
+    render();
   }
 }
 
