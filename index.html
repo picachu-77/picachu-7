@@ -175,6 +175,14 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .empty-icon{font-size:40px;margin-bottom:10px}
 .empty-txt{font-size:14px}
 .empty-sub{font-size:12px;margin-top:4px;opacity:.7}
+
+/* ── 프린트 ── */
+#print-area{display:none;}
+@media print {
+  #app{display:none!important;}
+  #toast{display:none!important;}
+  #print-area{display:block!important;font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:#000;padding:20px;}
+}
 </style>
 </head>
 <body>
@@ -231,6 +239,7 @@ var S={
   pairMode:'random', history:[], round:1, dup:false,
   numGames:0,    // 0 = 전체, 양수 = 해당 게임 수만
   matchMode:'rotation', // 'rotation' (전체리그·그룹혼합 제거)
+  groupMode:'intra', // 'intra'=그룹내끼리 | 'any'=그룹상관없이
   numRotations:10, // 로테이션 세트 수 (기본 10세트)
   blockInfo:[],   // [{blockNum, standby, dup}] — 로테이션 세트 정보
   groups:{},     // {teamId: 1 or 2} — 혼합 모드 그룹 배정
@@ -269,7 +278,7 @@ function fbSaveSession(){
     round:S.round, pairMode:S.pairMode, matchMode:S.matchMode,
     numGames:S.numGames, selected:S.selected, playerGroups:S.playerGroups,
     standby:S.standby, restCount:S.restCount, history:S.history,
-    dup:S.dup, mStep:S.mStep, groupNames:S.groupNames
+    dup:S.dup, mStep:S.mStep, groupNames:S.groupNames, groupMode:S.groupMode
   };
   db.ref('session').set(session).catch(function(){});
 }
@@ -310,6 +319,7 @@ function fbListen(){
       S.history=d.history||[]; S.dup=d.dup||false;
       S.mStep=d.mStep||2;
       if(d.groupNames&&Array.isArray(d.groupNames)) S.groupNames=d.groupNames;
+      if(d.groupMode) S.groupMode=d.groupMode;
       render();
       toast('이전 대진표를 불러왔어요 😊');
     }
@@ -440,11 +450,11 @@ function mkRotationSchedule(){
   var allTeams=[],allMatches=[],blockInfo=[];
   var teamId=0,matchId=0;
 
-  // 1·2그룹 구분 여부 확인
+  // 1·2그룹 구분 여부 확인 (그룹상관없이 모드면 그룹 무시)
   var hasGroups=false;
   var g1ps=ps.filter(function(p){return (S.playerGroups[p.name]||1)===1;});
   var g2ps=ps.filter(function(p){return (S.playerGroups[p.name]||1)===2;});
-  if(g1ps.length>=2&&g2ps.length>=2) hasGroups=true;
+  if(S.groupMode!=='any'&&g1ps.length>=2&&g2ps.length>=2) hasGroups=true;
 
   // 세트당 게임 수: 그룹 모드면 각 그룹에서 동시 진행 게임 합산
   var gamesPerSet=hasGroups
@@ -638,19 +648,16 @@ function generateResultImage(){
   ctx.font='12px '+KO;ctx.fillText('피카츄의 배드민턴매치',W/2,H-14);
 
   canvas.toBlob(function(blob){
-    var file=new File([blob],'배드민턴대진표.png',{type:'image/png'});
-    // 아이폰/안드로이드: 파일 공유 → 사진 앱에 저장 가능
-    if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
-      navigator.share({
-        title:'피카츄의 배드민턴매치 대진표',
-        files:[file]
-      }).then(function(){
-        toast('이미지 저장됐어요!');
-      }).catch(function(e){
-        if(e.name!=='AbortError') dlBlob(blob);
-      });
+    var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+    if(isIOS){
+      // 아이폰: 공유 메뉴 → 이미지 저장 선택
+      var file=new File([blob],'배드민턴대진표.png',{type:'image/png'});
+      if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+        navigator.share({title:'피카츄의 배드민턴매치 대진표',files:[file]})
+          .catch(function(e){if(e.name!=='AbortError') dlBlob(blob);});
+      } else { dlBlob(blob); }
     } else {
-      // PC or 미지원 브라우저: 다운로드
+      // 안드로이드/PC: 바로 다운로드 (갤러리/다운로드 폴더에 저장)
       dlBlob(blob);
     }
   },'image/png');
@@ -665,6 +672,62 @@ function dlBlob(blob){
   document.body.removeChild(a);
   setTimeout(function(){URL.revokeObjectURL(url);},2000);
   toast('📸 이미지 저장됐어요!');
+}
+
+// ── 프린트 ────────────────────────────────────────────────────────
+function printSchedule(){
+  var ms=S.matches,ts=S.teams;
+  var gn1=S.groupNames[0],gn2=S.groupNames[1];
+
+  var rows='';
+  var curBlock=-1;
+  for(var i=0;i<ms.length;i++){
+    var m=ms[i],t1=null,t2=null;
+    for(var j=0;j<ts.length;j++){if(ts[j].id===m.t1)t1=ts[j];if(ts[j].id===m.t2)t2=ts[j];}
+    if(!t1||!t2) continue;
+
+    if(S.matchMode==='rotation'&&m.blockNum!==curBlock){
+      curBlock=m.blockNum;
+      rows+='<tr><td colspan="3" style="background:#1a5c42;color:#c8f135;font-weight:700;font-size:13px;padding:6px 10px;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;">세트 '+curBlock+'</td></tr>';
+    }
+
+    var grpTxt='';
+    if(t1.grp){
+      var gc=t1.grp===1?'#1565c0':'#880e4f';
+      var gbg=t1.grp===1?'#e3f2fd':'#fce4ec';
+      grpTxt='<span style="font-size:10px;padding:1px 6px;border-radius:4px;background:'+gbg+';color:'+gc+';-webkit-print-color-adjust:exact;print-color-adjust:exact;">'+(t1.grp===1?gn1:gn2)+'</span><br>';
+    }
+
+    var bg=i%2===0?'#f9f9f9':'#ffffff';
+    rows+='<tr style="background:'+bg+';-webkit-print-color-adjust:exact;print-color-adjust:exact;">'
+      +'<td style="text-align:right;padding:10px 8px;font-weight:700;font-size:15px;width:40%;border-bottom:1px solid #eee;">'+t1.p1.name+'<br>'+t1.p2.name+'</td>'
+      +'<td style="text-align:center;padding:10px 4px;color:#999;font-size:12px;width:20%;border-bottom:1px solid #eee;">'+grpTxt+'VS</td>'
+      +'<td style="text-align:left;padding:10px 8px;font-weight:700;font-size:15px;width:40%;border-bottom:1px solid #eee;">'+t2.p1.name+'<br>'+t2.p2.name+'</td>'
+      +'</tr>';
+  }
+
+  // 기존 제거 후 새로 삽입
+  var old=document.getElementById('print-area');
+  if(old) document.body.removeChild(old);
+
+  var div=document.createElement('div');
+  div.id='print-area';
+  div.innerHTML=
+    '<div style="text-align:center;margin-bottom:16px">'
+      +'<div style="font-size:22px;font-weight:700;margin-bottom:4px">⚡ 피카츄의 배드민턴매치</div>'
+      +'<div style="font-size:13px;color:#666;">라운드 '+S.round+' · 총 '+ms.length+'게임</div>'
+    +'</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-family:\'Apple SD Gothic Neo\',\'Malgun Gothic\',sans-serif;">'+rows+'</table>';
+  document.body.appendChild(div);
+
+  // 약간 딜레이 후 프린트 (DOM 반영 대기)
+  setTimeout(function(){
+    window.print();
+    setTimeout(function(){
+      var el=document.getElementById('print-area');
+      if(el) document.body.removeChild(el);
+    },500);
+  },100);
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -929,7 +992,20 @@ function mStep2Html(){
     +(isRot?rotHint:'')
   +'</div>';
 
-  // ── 알림 ──
+  // ── 그룹 매치 방식 (참석자에 두 그룹이 있을 때만 표시) ──
+  var g1cnt=0,g2cnt=0;
+  for(var k in S.selected){if(S.selected[k]){if((S.playerGroups[k]||1)===1)g1cnt++;else g2cnt++;}}
+  var showGroupMode=g1cnt>=2&&g2cnt>=2;
+  var groupModeHtml='';
+  if(showGroupMode){
+    var gn1=S.groupNames[0],gn2=S.groupNames[1];
+    var isIntra=S.groupMode!=='any';
+    groupModeHtml='<div class="lbl" style="margin-bottom:5px">그룹 매치 방식</div>'
+      +'<div style="display:flex;gap:6px;margin-bottom:14px">'
+        +'<button data-a="setgm" data-v="intra" style="flex:1;padding:10px;border-radius:10px;font-weight:700;font-size:13px;min-height:44px;border:1px solid '+(isIntra?'var(--lime)':'var(--border)')+';background:'+(isIntra?'var(--tab-active)':'var(--card)')+';color:'+(isIntra?'var(--lime)':'var(--muted)')+'">'+gn1+' · '+gn2+'<br><span style="font-size:10px;font-weight:400">각 그룹끼리</span></button>'
+        +'<button data-a="setgm" data-v="any" style="flex:1;padding:10px;border-radius:10px;font-weight:700;font-size:13px;min-height:44px;border:1px solid '+(!isIntra?'var(--lime)':'var(--border)')+';background:'+(!isIntra?'var(--tab-active)':'var(--card)')+';color:'+(!isIntra?'var(--lime)':'var(--muted)')+'">전체 혼합<br><span style="font-size:10px;font-weight:400">그룹 상관없이</span></button>'
+      +'</div>';
+  }
   var sbNtc=S.standby?ntc('#f1a035','⏳',S.standby.name+' — 이번 라운드 대기 중'):'';
   var dupNtc=S.dup?ntc('var(--red)','⚠️','파트너가 이전 라운드와 겹쳤어요','모든 조합을 이미 사용해서 불가피해요'):'';
   var cycleNtc='';
@@ -983,6 +1059,7 @@ function mStep2Html(){
     +'<div class="lbl" style="margin-bottom:5px">팀 구성 방식</div>'
     +'<div class="mgrid" style="margin-bottom:10px">'+modeBtns+'</div>'
     +cycleNtc
+    +groupModeHtml
     // 게임수/세트수
     +'<div style="margin-bottom:14px">'
       +'<div class="lbl" style="margin-bottom:4px">게임 수</div>'
@@ -999,7 +1076,8 @@ function mStep2Html(){
       ?'<div style="margin-bottom:14px">'+mCards+'</div>'
        +'<div class="brow" style="margin-bottom:8px">'
          +'<button class="btn suc" data-a="cpr" style="flex:1;font-size:13px">📋 카톡 복사</button>'
-         +'<button class="btn gho" data-a="saveimg" style="flex:1;font-size:13px">📸 이미지 저장</button>'
+         +'<button class="btn gho" data-a="saveimg" style="flex:1;font-size:13px">📸 이미지</button>'
+         +'<button class="btn gho" onclick="printSchedule()" style="flex:1;font-size:13px">🖨️ 인쇄</button>'
        +'</div>'
        +'<button class="btn pri" data-a="nr" style="width:100%;margin-bottom:8px;font-size:14px;padding:13px">🏸 다음 라운드</button>'
        +'<div class="brow"><button class="btn gho" data-a="mg1" style="flex:1">← 뒤로</button><button class="btn dan" data-a="rst" style="flex:1">🔄 새 매치</button></div>'
@@ -1155,6 +1233,7 @@ function act(a,d){
     S.matches=[];S.teams=[];S.blockInfo=[];S.mStep=2;render();
   }
   else if(a==='sm'){S.pairMode=d.v;render();}
+  else if(a==='setgm'){S.groupMode=d.v;render();}
   else if(a==='mmode'){S.matchMode=d.v;render();}
   else if(a==='genmatches'||a==='rsf'){
     doTeams();
@@ -1170,6 +1249,7 @@ function act(a,d){
   else if(a==='lim'){render();}
   else if(a==='ngmclr'){S.numGames=0;render();}
   else if(a==='saveimg'){generateResultImage();}
+  else if(a==='print'){printSchedule();}
   else if(a==='cpr'){copyResults();}
   else if(a==='nr'){
     if(S.standby){S.restCount[S.standby.name]=(S.restCount[S.standby.name]||0)+1;}
@@ -1184,7 +1264,7 @@ function act(a,d){
   }
   else if(a==='rst'){
     S.standby=null;S.teams=[];S.matches=[];S.pairMode='random';
-    S.history=[];S.round=1;S.dup=false;S.numGames=0;S.matchMode='rotation';S.numRotations=10;S.groups={};S.groupNames=['1그룹','2그룹'];S.playerGroups={};S.restCount={};S.blockInfo=[];S.attendSearch='';
+    S.history=[];S.round=1;S.dup=false;S.numGames=0;S.matchMode='rotation';S.numRotations=10;S.groups={};S.groupNames=['1그룹','2그룹'];S.playerGroups={};S.restCount={};S.blockInfo=[];S.attendSearch='';S.groupMode='intra';
     S.mStep=1;
     if(db) db.ref('session').remove(); // Firebase에서 세션 삭제
     render();
