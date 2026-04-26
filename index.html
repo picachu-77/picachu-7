@@ -374,23 +374,37 @@ function restoreSession(d){
 
 // Firebase SDK를 동적으로 로드
 function loadFirebase(){
-  var s1=document.createElement('script');
-  s1.src='https://cdn.jsdelivr.net/npm/firebase@9.23.0/compat/app.js';
-  s1.onload=function(){
-    var s2=document.createElement('script');
-    s2.src='https://cdn.jsdelivr.net/npm/firebase@9.23.0/compat/database.js';
-    s2.onload=function(){
-      try{
-        if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        db=firebase.database();
-        fbListen();
-      }catch(e){toast('Firebase 연결 실패 — 로컬 모드로 실행');}
+  var urls=[
+    ['https://unpkg.com/firebase@8.10.1/firebase-app.js',
+     'https://unpkg.com/firebase@8.10.1/firebase-database.js'],
+    ['https://cdn.jsdelivr.net/npm/firebase@8.10.1/firebase-app.min.js',
+     'https://cdn.jsdelivr.net/npm/firebase@8.10.1/firebase-database.min.js'],
+    ['https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
+     'https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js']
+  ];
+  var idx=0;
+  function tryLoad(){
+    if(idx>=urls.length){toast('Firebase 연결 불가 — 로컬 모드로 실행');return;}
+    var pair=urls[idx++];
+    var s1=document.createElement('script');
+    s1.src=pair[0];
+    s1.onload=function(){
+      var s2=document.createElement('script');
+      s2.src=pair[1];
+      s2.onload=function(){
+        try{
+          if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+          db=firebase.database();
+          fbListen();
+        }catch(e){tryLoad();}
+      };
+      s2.onerror=function(){tryLoad();};
+      document.head.appendChild(s2);
     };
-    s2.onerror=function(){toast('Firebase 로드 실패 (database)');};
-    document.head.appendChild(s2);
-  };
-  s1.onerror=function(){toast('Firebase 로드 실패 (app)');};
-  document.head.appendChild(s1);
+    s1.onerror=function(){tryLoad();};
+    document.head.appendChild(s1);
+  }
+  tryLoad();
 }
 
 // ══════════════════════════════════════════════════════════════════
