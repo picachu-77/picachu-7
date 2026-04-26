@@ -375,10 +375,10 @@ function restoreSession(d){
 // Firebase SDK를 동적으로 로드
 function loadFirebase(){
   var s1=document.createElement('script');
-  s1.src='https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js';
+  s1.src='https://cdn.jsdelivr.net/npm/firebase@9.23.0/compat/app.js';
   s1.onload=function(){
     var s2=document.createElement('script');
-    s2.src='https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js';
+    s2.src='https://cdn.jsdelivr.net/npm/firebase@9.23.0/compat/database.js';
     s2.onload=function(){
       try{
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
@@ -1205,14 +1205,12 @@ function render(){
     ni.addEventListener('compositionend',function(e){_composing=false;S.rAddName=e.target.value;});
     ni.addEventListener('input',function(e){if(!_composing)S.rAddName=e.target.value;});
     ni.addEventListener('keydown',function(e){if(e.key==='Enter'&&!_composing)act('radd');});
-    ni.focus();ni.setSelectionRange(ni.value.length,ni.value.length);
   }
   var reni=document.getElementById('reni');
   if(reni){
     reni.addEventListener('compositionstart',function(){_composing=true;});
     reni.addEventListener('compositionend',function(e){_composing=false;S.rEditName=e.target.value;});
     reni.addEventListener('input',function(e){if(!_composing)S.rEditName=e.target.value;});
-    reni.focus();reni.setSelectionRange(reni.value.length,reni.value.length);
   }
   var ngmEl=document.getElementById('ngm');
   if(ngmEl){ngmEl.addEventListener('input',function(e){S.numGames=parseInt(e.target.value)||0;});}
@@ -1227,7 +1225,7 @@ function render(){
     asrchEl.addEventListener('input',function(e){
       if(!_composing){S.attendSearch=e.target.value;render();}
     });
-    if(S.attendSearch){asrchEl.focus();asrchEl.setSelectionRange(asrchEl.value.length,asrchEl.value.length);}
+    if(S.attendSearch){asrchEl.setSelectionRange(asrchEl.value.length,asrchEl.value.length);}
   }
   var gn1el=document.getElementById('gn1'),gn2el=document.getElementById('gn2');
   if(gn1el){gn1el.addEventListener('input',function(e){S.groupNames[0]=e.target.value||'1그룹';fbSaveGnames();});}
