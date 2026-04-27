@@ -273,9 +273,11 @@ function sortRoster(){
 }
 function fbSaveRoster(){
   sortRoster();
-  lsRosterSave(); // 항상 로컬에도 백업
-  if(!db){return;}
-  db.ref('roster').set(S.roster).catch(function(e){toast('저장 실패');});
+  lsRosterSave();
+  if(!db) return;
+  // 빈 항목 제거 후 저장
+  var clean=S.roster.filter(function(p){return p&&p.name;});
+  db.ref('roster').set(clean).catch(function(e){toast('저장 실패: '+e.message);});
 }
 function fbSaveGnames(){
   if(!db){return;}
@@ -311,12 +313,25 @@ function lsLoad(){
 function fbListen(){
   db.ref('roster').on('value',function(snap){
     var data=snap.val();
-    if(data&&data.length>0){
-      S.roster=data;
+    var roster=[];
+    if(data){
+      // Firebase는 배열을 객체로 저장할 수 있음 → 변환
+      if(Array.isArray(data)){
+        roster=data.filter(function(p){return p&&p.name;});
+      } else if(typeof data==='object'){
+        var keys=Object.keys(data);
+        for(var i=0;i<keys.length;i++){
+          if(data[keys[i]]&&data[keys[i]].name) roster.push(data[keys[i]]);
+        }
+      }
+    }
+    if(roster.length>0){
+      S.roster=roster;
       S.roster.sort(function(a,b){return a.name.localeCompare(b.name,'ko');});
       lsRosterSave();
       render();
     } else if(S.roster.length>0){
+      // Firebase 비어있고 로컬에 있으면 Firebase에 업로드
       db.ref('roster').set(S.roster);
     }
   });
@@ -409,6 +424,7 @@ function loadFirebase(){
           if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
           db=firebase.database();
           fbListen();
+          toast('✅ Firebase 연결됐어요');
         }catch(e){tryLoad();}
       };
       s2.onerror=function(){tryLoad();};
