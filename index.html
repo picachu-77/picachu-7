@@ -233,7 +233,7 @@ var S={
   // 명단 관리 UI
   rAddName:'', rAddGender:'남', rAddLevel:'C',
   rEditIdx:-1, rEditName:'', rEditGender:'남', rEditLevel:'C',
-  rShowGrade:false, rSelectMode:false, rSelected:{}, rSearch:'',
+  rShowGrade:false, rSelectMode:false, rSelected:{}, rSearch:'', showGuide:false,
   // 매치
   mStep:1,       // 1:참석자선택 2:팀구성 3:대진표 4:순위
   selected:{},      // {이름: true}
@@ -802,35 +802,89 @@ function dlBlob(blob){
 // ── 프린트 ────────────────────────────────────────────────────────
 function printSchedule(){
   var ms=S.matches,ts=S.teams;
-  var gn1=S.groupNames[0],gn2=S.groupNames[1];
-  var rows='',curBlock=-1,gameNum=0;
+  var PCOLORS=['#1565c0','#880e4f','#1b5e20','#e65100','#4a148c','#006064'];
 
+  // 세트별, 코트별로 그룹핑
+  var setsMap={},blockOrder=[];
   for(var i=0;i<ms.length;i++){
     var m=ms[i],t1=null,t2=null;
     for(var j=0;j<ts.length;j++){if(ts[j].id===m.t1)t1=ts[j];if(ts[j].id===m.t2)t2=ts[j];}
     if(!t1||!t2) continue;
-    gameNum++;
-    if(m.blockNum!==curBlock){
-      curBlock=m.blockNum;
-      var bi=null;for(var bi2=0;bi2<S.blockInfo.length;bi2++)if(S.blockInfo[bi2].blockNum===curBlock){bi=S.blockInfo[bi2];break;}
-      var sLabel='세트 '+curBlock+(bi&&bi.modeLabel?' · '+bi.modeLabel:'');
-      rows+='<tr><td colspan="4" style="padding:'+(curBlock>1?'16px':'6px')+' 10px 4px;font-size:11px;font-weight:700;color:#1a5c42;border-top:'+(curBlock>1?'2px solid #ddd':'none')+'">'+sLabel+'</td></tr>';
+    if(t1.grp&&t2.grp&&t1.grp!==t2.grp) continue;
+    var cid=(t1.grp)||m.court||1;
+    var bn=m.blockNum||0;
+    if(!setsMap[bn]){setsMap[bn]={};blockOrder.push(bn);}
+    if(!setsMap[bn][cid]) setsMap[bn][cid]=[];
+    setsMap[bn][cid].push({m:m,t1:t1,t2:t2});
+  }
+
+  var body='';
+  for(var si=0;si<blockOrder.length;si++){
+    var bn=blockOrder[si];
+    var setData=setsMap[bn];
+    var courtIds=Object.keys(setData).sort(function(a,b){return a-b;});
+    var ncols=courtIds.length;
+
+    // 세트 헤더
+    var bi=null;for(var bi2=0;bi2<S.blockInfo.length;bi2++)if(S.blockInfo[bi2].blockNum===bn){bi=S.blockInfo[bi2];break;}
+    var sLabel='세트 '+bn+(bi&&bi.modeLabel?' · '+bi.modeLabel:'');
+    body+='<div class="set-hd'+(si>0?' mt':'')+'">'+sLabel+'</div>';
+
+    // 코트 가로 배치
+    body+='<div class="court-row">';
+    for(var ci=0;ci<courtIds.length;ci++){
+      var cid=parseInt(courtIds[ci]);
+      var cc=PCOLORS[(cid-1)%PCOLORS.length];
+      var cbg=cid===1?'#e3f2fd':cid===2?'#fce4ec':cid===3?'#e8f5e9':cid===4?'#fff3e0':'#f3e5f5';
+      var cms=setData[courtIds[ci]];
+      body+='<div class="court-col">';
+      if(ncols>1){
+        body+='<div class="court-lbl" style="color:'+cc+';border-bottom:2px solid '+cc+'">'+cid+'코트</div>';
+      }
+      for(var mi=0;mi<cms.length;mi++){
+        var mt1=cms[mi].t1,mt2=cms[mi].t2;
+        body+='<div class="match-card" style="border-left:3px solid '+cc+'">'
+          +'<div class="match-body">'
+            +'<div class="team">'
+              +'<div class="pname">'+mt1.p1.name+'</div>'
+              +'<div class="pname">'+mt1.p2.name+'</div>'
+            +'</div>'
+            +'<div class="vs">vs</div>'
+            +'<div class="team r">'
+              +'<div class="pname">'+mt2.p1.name+'</div>'
+              +'<div class="pname">'+mt2.p2.name+'</div>'
+            +'</div>'
+          +'</div>'
+          +'</div>';
+      }
+      body+='</div>';
     }
-    var grpTxt='';
-    if(t1.grp){var gc=t1.grp===1?'#1565c0':'#880e4f',gbg=t1.grp===1?'#e3f2fd':'#fce4ec';grpTxt='<span style="font-size:9px;padding:1px 4px;border-radius:3px;background:'+gbg+';color:'+gc+'">'+(t1.grp===1?gn1:gn2)+'</span> ';}
-    rows+='<tr style="background:'+(gameNum%2===0?'#f7f7f7':'#fff')+';border-bottom:1px solid #eee">'
-      +'<td style="width:24px;text-align:center;padding:9px 4px;font-size:11px;color:#aaa">'+gameNum+'</td>'
-      +'<td style="text-align:right;padding:9px 8px;font-size:14px">'+t1.p1.name+'<br><span style="font-size:13px;color:#666">'+t1.p2.name+'</span></td>'
-      +'<td style="text-align:center;padding:9px 6px;font-size:11px;color:#bbb;white-space:nowrap">'+grpTxt+'vs</td>'
-      +'<td style="text-align:left;padding:9px 8px;font-size:14px">'+t2.p1.name+'<br><span style="font-size:13px;color:#666">'+t2.p2.name+'</span></td>'
-      +'</tr>';
+    body+='</div>';
   }
 
   var html='<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>대진표</title>'
-    +'<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif;padding:20px;color:#111;max-width:560px;margin:0 auto}.hd{text-align:center;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #1a5c42}.hd h2{font-size:20px;font-weight:800;color:#1a5c42;margin-bottom:3px}.hd p{font-size:12px;color:#888}table{width:100%;border-collapse:collapse}.prtbtn{display:block;margin:18px auto 0;padding:10px 28px;background:#1a5c42;color:#c8f135;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer}@media print{.prtbtn{display:none}}</style>'
-    +'</head><body>'
+    +'<style>'
+    +'*{box-sizing:border-box;margin:0;padding:0}'
+    +'body{font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif;padding:20px;color:#111;max-width:700px;margin:0 auto}'
+    +'.hd{text-align:center;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #1a5c42}'
+    +'.hd h2{font-size:20px;font-weight:800;color:#1a5c42;margin-bottom:3px}'
+    +'.hd p{font-size:12px;color:#888}'
+    +'.set-hd{font-size:12px;font-weight:700;color:#1a5c42;padding:4px 0;margin-bottom:6px}'
+    +'.set-hd.mt{margin-top:18px;padding-top:14px;border-top:1px solid #ddd}'
+    +'.court-row{display:flex;gap:8px;margin-bottom:4px}'
+    +'.court-col{flex:1}'
+    +'.court-lbl{font-size:11px;font-weight:800;padding:3px 0;text-align:center;margin-bottom:4px}'
+    +'.match-card{border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;margin-bottom:6px}'
+    +'.match-body{display:flex;align-items:center;padding:10px 8px}'
+    +'.team{flex:1}'
+    +'.team.r{text-align:right}'
+    +'.pname{font-size:13px;font-weight:600;line-height:1.5}'
+    +'.vs{font-size:11px;color:#bbb;padding:0 6px;flex-shrink:0}'
+    +'.prtbtn{display:block;margin:20px auto 0;padding:10px 28px;background:#1a5c42;color:#c8f135;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer}'
+    +'@media print{.prtbtn{display:none}}'
+    +'</style></head><body>'
     +'<div class="hd"><h2>⚡ 피카츄의 배드민턴매치</h2><p>라운드 '+S.round+' · 총 '+ms.length+'게임</p></div>'
-    +'<table>'+rows+'</table>'
+    +body
     +'<button class="prtbtn" onclick="window.print()">🖨️ 인쇄하기</button>'
     +'</body></html>';
 
@@ -898,6 +952,8 @@ function gradeGuideHtml(curLv){
 // 탭 1: 명단 관리
 // ══════════════════════════════════════════════════════════════════
 function rosterHtml(){
+  // 표시 전 정렬
+  S.roster.sort(function(a,b){return a.name.localeCompare(b.name,'ko');});
   var curLv=linfo(S.rAddLevel);
   var curInfo=LV_INFO[S.rAddLevel];
   var trimName=S.rAddName.trim(),dup=false;
@@ -980,7 +1036,7 @@ function rosterHtml(){
             ?'<div style="width:22px;height:22px;border-radius:6px;border:2px solid '+(isRSel?'var(--lime)':'var(--border)')+';background:'+(isRSel?'var(--lime)':'transparent')+';display:flex;align-items:center;justify-content:center;font-size:13px;color:#0d3b2e;flex-shrink:0">'+(isRSel?'✓':'')+'</div>'
             :'<div class="roster-num">'+(origIdx+1)+'</div>')
           +'<div class="roster-info">'+gbadge(p.gender)
-            +(rq?p.name.replace(new RegExp('('+rq.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<mark style="background:rgba(200,241,53,.35);color:var(--white);border-radius:3px;padding:0 2px">$1</mark>'):('<span class="roster-name">'+p.name+'</span>'))
+            +(rq?p.name.replace(new RegExp('('+rq.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'$1'):('<span class="roster-name">'+p.name+'</span>'))
             +lvbadge(p.level)+'</div>'
           +(!inSel
             ?'<div class="roster-actions">'
@@ -1041,18 +1097,22 @@ function mStep1Html(){
   var courtSummary='';
   if(selCount>0){
     courtSummary='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;align-items:center">';
-    for(var ci=1;ci<=nc;ci++){
+    // 실제 배정된 코트만 표시 (nc=0이어도 보임)
+    var shownCourts=Math.max(nc,1);
+    for(var ci=1;ci<=shownCourts;ci++){
       var cc=COURT_COLORS[(ci-1)%COURT_COLORS.length];
       courtSummary+='<span style="padding:3px 9px;border-radius:8px;background:'+cc+'22;border:1px solid '+cc+'44;color:'+cc+';font-weight:700;font-size:12px">'+ci+'코트 '+(courtCounts[ci]||0)+'명</span>';
     }
     if(lateCount>0) courtSummary+='<span style="padding:3px 9px;border-radius:8px;background:rgba(241,160,53,.18);border:1px solid rgba(241,160,53,.4);color:#f1a035;font-weight:700;font-size:12px">🕐 늦참 '+lateCount+'명</span>';
-    // 전원 배정 버튼
-    courtSummary+='<div style="display:flex;gap:3px;margin-left:auto">';
-    for(var ci=1;ci<=nc;ci++){
-      var cc=COURT_COLORS[(ci-1)%COURT_COLORS.length];
-      courtSummary+='<button data-a="courtall" data-v="'+ci+'" style="padding:2px 7px;border-radius:6px;font-size:10px;font-weight:700;border:1px solid '+cc+'44;background:'+cc+'18;color:'+cc+'">전원 '+ci+'코트</button>';
+    if(shownCourts>1){
+      courtSummary+='<div style="display:flex;gap:3px;margin-left:auto">';
+      for(var ci=1;ci<=shownCourts;ci++){
+        var cc=COURT_COLORS[(ci-1)%COURT_COLORS.length];
+        courtSummary+='<button data-a="courtall" data-v="'+ci+'" style="padding:2px 7px;border-radius:6px;font-size:10px;font-weight:700;border:1px solid '+cc+'44;background:'+cc+'18;color:'+cc+'">전원 '+ci+'코트</button>';
+      }
+      courtSummary+='</div>';
     }
-    courtSummary+='</div></div>';
+    courtSummary+='</div>';
   }
 
   var out='<div class="ttl">오늘 참석자</div>'
@@ -1082,8 +1142,25 @@ function mStep1Html(){
       +'<div style="display:flex;gap:6px">'
         +(q?'<button class="select-all-btn" data-a="selfiltered">검색결과 전체선택</button>':'')
         +'<button class="select-all-btn" data-a="selall" data-v="'+(allSelected?'none':'all')+'">'+(allSelected?'전체 해제':'전체 선택')+'</button>'
+        +'<button class="select-all-btn" data-a="toggleGuide" style="background:transparent;border-color:'+(S.showGuide?'var(--lime)':'var(--border)')+';color:'+(S.showGuide?'var(--lime)':'var(--muted)')+'">사용방법</button>'
       +'</div>'
     +'</div>'
+    +(S.showGuide
+      ?'<div style="background:var(--card);border:1px solid rgba(200,241,53,.3);border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:12px;color:var(--muted);line-height:1.9">'
+        +'<b style="color:var(--lime)">📖 사용방법</b><br>'
+        +'<b style="color:var(--white)">1.</b> 코트 수 / 게임 수 입력<br>'
+        +'<b style="color:var(--white)">2.</b> 코트 버튼 눌러 참석·배정 (늦참은 🕐)<br>'
+        +'<b style="color:var(--white)">3.</b> 대진표 생성 → 팀 구성 방식 선택<br>'
+        +'<b style="color:var(--white)">4.</b> ▶ 진행 중 → ✓ 완료 순서로 클릭<br>'
+        +'<b style="color:var(--white)">5.</b> 늦참 도착 시 대진표에서 ✅ 도착! 클릭<br>'
+        +'<br>'
+        +'<b style="color:var(--lime)">🏸 팀 구성 방식</b><br>'
+        +'<b style="color:var(--white)">🎲 완전 랜덤</b> — 순수하게 무작위로 팀 구성<br>'
+        +'<b style="color:var(--white)">🤝 균형</b> — 고수↔초보가 같은 팀이 되도록 배정<br>'
+        +'<b style="color:var(--white)">🎯 동급 대결</b> — 비슷한 수준 4명끼리 묶어서 경기<br>'
+        +'<b style="color:var(--white)">🔁 순환</b> — 랜덤→균형→동급 대결을 세트마다 반복'
+      +'</div>'
+      :'')
     +courtSummary;
 
   // ── 참석자 목록 ──
@@ -1114,9 +1191,9 @@ function mStep1Html(){
         +'<div class="chk-box'+(isSel?' on':'')+'">'+( isSel?'✓':'')+'</div>'
         +'<div class="attend-info">'
           +'<div class="attend-name">'
-            +(q?p.name.replace(new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<mark style="background:rgba(200,241,53,.35);color:var(--white);border-radius:3px;padding:0 2px">$1</mark>'):p.name)
-            +(isSel&&!isLate?'<span style="font-size:10px;font-weight:700;color:'+pc+';margin-left:5px">'+pCourt+'코트</span>':'')
-            +(isLate?'<span style="font-size:10px;font-weight:700;color:#f1a035;margin-left:5px">🕐 늦참</span>':'')
+            +(q?p.name.replace(new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'$1'):p.name)
+            +(isSel?'<span style="font-size:10px;font-weight:700;color:'+pc+';margin-left:5px">'+pCourt+'코트</span>':'')
+            +(isLate?'<span style="font-size:10px;font-weight:700;color:#f1a035;margin-left:4px">🕐 늦참</span>':'')
           +'</div>'
           +'<div class="attend-badges">'+gbadge(p.gender)+lvbadge(p.level)
           +(S.round>1&&(S.restCount[p.name]||0)>0?'<span class="badge" style="background:rgba(241,160,53,.2);border:1px solid rgba(241,160,53,.4);color:#f1a035">⏳ '+(S.restCount[p.name])+'회 쉼</span>':'')
@@ -1374,7 +1451,7 @@ function renderRosterList(){
           ?'<div style="width:22px;height:22px;border-radius:6px;border:2px solid '+(isRSel?'var(--lime)':'var(--border)')+';background:'+(isRSel?'var(--lime)':'transparent')+';display:flex;align-items:center;justify-content:center;font-size:13px;color:#0d3b2e;flex-shrink:0">'+(isRSel?'✓':'')+'</div>'
           :'<div class="roster-num">'+(origIdx+1)+'</div>')
         +'<div class="roster-info">'+gbadge(p.gender)
-          +(rq?p.name.replace(new RegExp('('+rq.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<mark style="background:rgba(200,241,53,.35);color:var(--white);border-radius:3px;padding:0 2px">$1</mark>'):('<span class="roster-name">'+p.name+'</span>'))
+          +(rq?p.name.replace(new RegExp('('+rq.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'$1'):('<span class="roster-name">'+p.name+'</span>'))
           +lvbadge(p.level)+'</div>'
         +(!inSel
           ?'<div class="roster-actions">'
@@ -1431,14 +1508,16 @@ function render(){
   }
   var rsrchEl=document.getElementById('rsrch');
   if(rsrchEl){
-    rsrchEl.addEventListener('compositionstart',function(){_composing=true;});
+    var _rComposing=false;
+    rsrchEl.addEventListener('compositionstart',function(){_rComposing=true;});
     rsrchEl.addEventListener('compositionend',function(e){
-      _composing=false;
+      _rComposing=false;
       S.rSearch=e.target.value;
       renderRosterList();
     });
     rsrchEl.addEventListener('input',function(e){
-      if(!_composing){S.rSearch=e.target.value;renderRosterList();}
+      S.rSearch=e.target.value;
+      renderRosterList();
     });
   }
   var ngmEl=document.getElementById('ngm');
@@ -1477,6 +1556,7 @@ function act(a,d){
 
   // ── 공통 ──────────────────────────────────────────────────────
   if(a==='gotab'){S.tab=d.v;render();}
+  else if(a==='toggleGuide'){S.showGuide=!S.showGuide;render();}
   else if(a==='thm'){S.theme=S.theme==='dark'?'light':'dark';document.body.classList.toggle('light',S.theme==='light');lsSave();render();}
   else if(a==='shr'){shareApp();}
 
