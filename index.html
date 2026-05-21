@@ -866,53 +866,79 @@ function generateResultImage(){
     setsMap[bn][cid].push({m:m,t1:t1,t2:t2});
   }
 
-  // 캔버스 크기 계산
-  var W=720,padX=28,headerH=110,setLabelH=32,setGap=24,cardH=90,cardGap=8;
-  var H=headerH;
+  // 세트 수에 따라 컬럼 수 자동 결정
+  var totalSets=blockOrder.length;
+  var imgCols=totalSets>20?3:(totalSets>10?2:1);
+
+  // 세트별 높이 미리 계산
+  var setLabelH=24,cardH=42,cardGap=4,setGap=12;
+  var setHeights=[];
   for(var si=0;si<blockOrder.length;si++){
     var setData=setsMap[blockOrder[si]];
     var courtIds=Object.keys(setData);
     var maxCards=0;
     for(var ci=0;ci<courtIds.length;ci++) maxCards=Math.max(maxCards,setData[courtIds[ci]].length);
-    H+=setLabelH+maxCards*(cardH+cardGap)+setGap;
+    setHeights.push(setLabelH+maxCards*(cardH+cardGap)+setGap);
   }
-  H+=40;
+
+  // 캔버스 너비/높이
+  var W=imgCols===1?700:(imgCols===2?900:1100);
+  var padX=20,headerH=90;
+  var colGap=12;
+  var colW=(W-padX*2-colGap*(imgCols-1))/imgCols;
+
+  // 세트를 컬럼별로 배분 (높이 균형)
+  var colHeights=[];for(var ci=0;ci<imgCols;ci++) colHeights.push(0);
+  var setCols=[]; // 각 세트가 어느 컬럼인지
+  // 단순 순차 배분 (전체 세트 / 컬럼 수)
+  var setsPerCol=Math.ceil(totalSets/imgCols);
+  for(var si=0;si<totalSets;si++) setCols.push(Math.floor(si/setsPerCol));
+
+  // 컬럼별 누적 높이 계산
+  for(var si=0;si<totalSets;si++) colHeights[setCols[si]]+=setHeights[si];
+  var maxColH=0;for(var ci=0;ci<imgCols;ci++) maxColH=Math.max(maxColH,colHeights[ci]);
+  var H=headerH+maxColH+40;
 
   var canvas=document.createElement('canvas');
   canvas.width=W;canvas.height=H;
   var ctx=canvas.getContext('2d');
 
-  // 배경 (밝은 톤)
+  // 배경
   ctx.fillStyle='#0d3b2e';ctx.fillRect(0,0,W,H);
   ctx.fillStyle='#c8f135';ctx.fillRect(0,0,W,4);
 
   // 타이틀
   ctx.textAlign='center';
-  ctx.fillStyle='#c8f135';ctx.font='bold 30px '+KO;
-  ctx.fillText('⚡ 피카츄의 배드민턴매치',W/2,46);
-  ctx.fillStyle='rgba(255,255,255,0.55)';ctx.font='15px '+KO;
-  ctx.fillText('라운드 '+S.round+'  ·  총 '+ms.length+'게임',W/2,72);
+  ctx.fillStyle='#c8f135';ctx.font='bold 28px '+KO;
+  ctx.fillText('⚡ 피카츄의 배드민턴매치',W/2,42);
+  ctx.fillStyle='rgba(255,255,255,0.55)';ctx.font='13px '+KO;
+  ctx.fillText('라운드 '+S.round+'  ·  총 '+ms.length+'게임',W/2,64);
   ctx.strokeStyle='rgba(200,241,53,0.25)';ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(padX,90);ctx.lineTo(W-padX,90);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(padX,76);ctx.lineTo(W-padX,76);ctx.stroke();
+
+  // 컬럼별 y 추적
+  var colY=[];for(var ci=0;ci<imgCols;ci++) colY.push(headerH);
 
   // 세트별 렌더링
-  var y=headerH;
   for(var si=0;si<blockOrder.length;si++){
     var bn=blockOrder[si];
     var setData=setsMap[bn];
     var courtIds=Object.keys(setData).sort(function(a,b){return a-b;});
     var ncols=courtIds.length;
+    var col=setCols[si];
+    var colX=padX+col*(colW+colGap);
+    var y=colY[col];
 
     // 세트 라벨
     var bi=null;for(var bi2=0;bi2<S.blockInfo.length;bi2++)if(S.blockInfo[bi2].blockNum===bn){bi=S.blockInfo[bi2];break;}
     var sLabel='세트 '+bn+(bi&&bi.modeLabel?'  ·  '+bi.modeLabel:'');
     ctx.textAlign='left';
-    ctx.fillStyle='#c8f135';ctx.font='bold 16px '+KO;
-    ctx.fillText(sLabel,padX,y+18);
+    ctx.fillStyle='#c8f135';ctx.font='bold 13px '+KO;
+    ctx.fillText(sLabel,colX,y+14);
     y+=setLabelH;
 
     // 코트 가로 배치
-    var colW=(W-padX*2-(ncols-1)*10)/ncols;
+    var subColW=(colW-(ncols-1)*6)/ncols;
     var maxCards=0;
     for(var ci=0;ci<courtIds.length;ci++) maxCards=Math.max(maxCards,setData[courtIds[ci]].length);
 
@@ -920,53 +946,47 @@ function generateResultImage(){
       var cid=parseInt(courtIds[ci]);
       var cc=COURT_COLS[(cid-1)%COURT_COLS.length];
       var cms=setData[courtIds[ci]];
-      var colX=padX+ci*(colW+10);
-
-      // 코트 라벨 (멀티코트일 때)
-      if(ncols>1){
-        ctx.textAlign='center';
-        ctx.fillStyle=cc;ctx.font='bold 12px '+KO;
-        ctx.fillText(cid+'코트',colX+colW/2,y-2);
-      }
+      var subX=colX+ci*(subColW+6);
 
       // 카드들
       for(var mi=0;mi<cms.length;mi++){
         var mt1=cms[mi].t1,mt2=cms[mi].t2;
         var cy=y+mi*(cardH+cardGap);
 
-        // 카드 배경
+        // 카드 배경 + 왼쪽 색 바
         ctx.fillStyle='rgba(255,255,255,0.06)';
-        roundRect(ctx,colX,cy,colW,cardH,10);
-        ctx.fill();
-        // 왼쪽 색 바
-        ctx.fillStyle=cc;
-        ctx.fillRect(colX,cy,4,cardH);
+        roundRect(ctx,subX,cy,subColW,cardH,8);ctx.fill();
+        ctx.fillStyle=cc;ctx.fillRect(subX,cy,3,cardH);
 
-        // 팀1 (왼쪽)
-        ctx.textAlign='left';
-        ctx.fillStyle='#fff';ctx.font='bold 16px '+KO;
-        ctx.fillText(mt1.p1.name,colX+14,cy+30);
-        ctx.fillText(mt1.p2.name,colX+14,cy+54);
+        // 코트 표시 (멀티코트일 때만, 작게)
+        if(ncols>1){
+          ctx.textAlign='left';ctx.fillStyle=cc;ctx.font='bold 9px '+KO;
+          ctx.fillText(cid+'코트',subX+8,cy+12);
+        }
 
-        // VS (중앙)
-        ctx.textAlign='center';
-        ctx.fillStyle=cc;ctx.font='bold 13px '+KO;
-        ctx.fillText('vs',colX+colW/2,cy+45);
+        // 이름 한 줄로 (A·B  vs  C·D)
+        var t1name=mt1.p1.name+'·'+mt1.p2.name;
+        var t2name=mt2.p1.name+'·'+mt2.p2.name;
+        var midY=cy+cardH/2+(ncols>1?6:2);
 
-        // 팀2 (오른쪽)
-        ctx.textAlign='right';
-        ctx.fillStyle='#fff';ctx.font='bold 16px '+KO;
-        ctx.fillText(mt2.p1.name,colX+colW-14,cy+30);
-        ctx.fillText(mt2.p2.name,colX+colW-14,cy+54);
+        ctx.textAlign='left';ctx.fillStyle='#fff';ctx.font='bold 13px '+KO;
+        ctx.fillText(t1name,subX+8,midY);
+
+        ctx.textAlign='center';ctx.fillStyle=cc;ctx.font='bold 10px '+KO;
+        ctx.fillText('vs',subX+subColW/2,midY);
+
+        ctx.textAlign='right';ctx.fillStyle='#fff';ctx.font='bold 13px '+KO;
+        ctx.fillText(t2name,subX+subColW-8,midY);
       }
     }
 
     y+=maxCards*(cardH+cardGap)+setGap-cardGap;
+    colY[col]=y;
   }
 
   // 푸터
   ctx.textAlign='center';ctx.fillStyle='rgba(255,255,255,0.25)';
-  ctx.font='12px '+KO;ctx.fillText('피카츄의 배드민턴매치',W/2,H-16);
+  ctx.font='11px '+KO;ctx.fillText('피카츄의 배드민턴매치',W/2,H-14);
 
   canvas.toBlob(function(blob){
     var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
