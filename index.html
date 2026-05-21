@@ -558,39 +558,70 @@ function mkRotationSchedule(){
   for(var i=0;i<ps.length;i++){playCount[ps[i].name]=0; lastPlayedSet[ps[i].name]=-1;}
   function pairKey(a,b){return [a,b].sort().join('||');}
 
-  // 4명을 두 팀으로 나누는 3가지 페어링 중 가장 다양한 조합 선택
+  // 4명의 3가지 페어링 중 페어 카운트 합이 가장 적은 것
+  function findBestPairing(four){
+    if(!four||four.length!==4) return null;
+    var options=[
+      [[four[0],four[1]],[four[2],four[3]]],
+      [[four[0],four[2]],[four[1],four[3]]],
+      [[four[0],four[3]],[four[1],four[2]]]
+    ];
+    var best=null,bestScore=Infinity;
+    for(var i=0;i<options.length;i++){
+      var o=options[i];
+      var s=(pairCount[pairKey(o[0][0].name,o[0][1].name)]||0)+
+            (pairCount[pairKey(o[1][0].name,o[1][1].name)]||0);
+      if(s<bestScore){bestScore=s;best=o;}
+    }
+    return {pairing:best,score:bestScore};
+  }
+
+  // 8명을 2게임(4명+4명)으로 나누는 최적 분할 + 페어링
+  function splitInto2Games(eight){
+    if(!eight||eight.length<8) return null;
+    var bestSplit=null,bestScore=Infinity;
+    // 첫 인덱스 0 고정 (대칭 중복 제거), 다른 3명 선택
+    for(var b=1;b<6;b++){
+      for(var c=b+1;c<7;c++){
+        for(var d=c+1;d<8;d++){
+          var g1=[eight[0],eight[b],eight[c],eight[d]];
+          var g2=[];
+          for(var i=0;i<8;i++){
+            if(i!==0&&i!==b&&i!==c&&i!==d) g2.push(eight[i]);
+          }
+          var p1=findBestPairing(g1);
+          var p2=findBestPairing(g2);
+          if(!p1||!p2) continue;
+          var s=p1.score+p2.score;
+          if(s<bestScore){bestScore=s;bestSplit={g1:p1.pairing,g2:p2.pairing};}
+        }
+      }
+    }
+    return bestSplit;
+  }
+
+  // [구버전 호환] 4명 페어링 최적화
   function optimizePairing(team1,team2){
     if(!team1||!team2) return null;
     var p=[team1.p1,team1.p2,team2.p1,team2.p2];
-    var options=[
-      [{p1:p[0],p2:p[1]},{p1:p[2],p2:p[3]}],
-      [{p1:p[0],p2:p[2]},{p1:p[1],p2:p[3]}],
-      [{p1:p[0],p2:p[3]},{p1:p[1],p2:p[2]}]
+    var res=findBestPairing(p);
+    if(!res) return null;
+    return [
+      {p1:res.pairing[0][0],p2:res.pairing[0][1]},
+      {p1:res.pairing[1][0],p2:res.pairing[1][1]}
     ];
-    var best=options[0],bestScore=Infinity;
-    for(var i=0;i<options.length;i++){
-      var o=options[i];
-      var s1=pairCount[pairKey(o[0].p1.name,o[0].p2.name)]||0;
-      var s2=pairCount[pairKey(o[1].p1.name,o[1].p2.name)]||0;
-      // 두 팀의 페어 카운트 합 (낮을수록 다양함)
-      var score=s1+s2+Math.abs(s1-s2)*0.5; // 균형도도 고려
-      if(score<bestScore){bestScore=score;best=o;}
-    }
-    return best;
   }
 
-  // 우선순위: ① 출전 횟수 ② 오래 쉰 사람 ③ 이미 뽑힌 사람과 페어 횟수 적은 사람
+  // 우선순위: 출전 횟수 → 페어 다양성 → 오래 쉰 사람 → 랜덤
   function pickFewestPlayers(pool,n,curSet){
     var picked=[];
     var remaining=pool.slice();
     while(picked.length<n&&remaining.length>0){
       remaining.sort(function(a,b){
         var ca=playCount[a.name]||0, cb=playCount[b.name]||0;
-        if(ca!==cb) return ca-cb;
-        var la=lastPlayedSet[a.name];if(la===undefined)la=-1;
-        var lb=lastPlayedSet[b.name];if(lb===undefined)lb=-1;
-        if(la!==lb) return la-lb;
-        // 이미 뽑힌 사람과의 누적 페어 카운트
+        // 출전 횟수 차이가 2 이상이면 절대 우선
+        if(Math.abs(ca-cb)>=2) return ca-cb;
+        // 이미 뽑힌 사람들과의 페어 카운트 (다양성 우선)
         if(picked.length>0){
           var sa=0,sb=0;
           for(var pi=0;pi<picked.length;pi++){
@@ -599,6 +630,12 @@ function mkRotationSchedule(){
           }
           if(sa!==sb) return sa-sb;
         }
+        // 출전 횟수 (1차이 이내)
+        if(ca!==cb) return ca-cb;
+        // 오래 쉰 사람
+        var la=lastPlayedSet[a.name];if(la===undefined)la=-1;
+        var lb=lastPlayedSet[b.name];if(lb===undefined)lb=-1;
+        if(la!==lb) return la-lb;
         return Math.random()-0.5;
       });
       picked.push(remaining.shift());
@@ -672,8 +709,22 @@ function mkRotationSchedule(){
       var playing=pickFewestPlayers(available,actualNeeded,b);
       var r=buildWithMode(playing,tempH,blockMode);
       var blockTeams=r.teams.slice(0,nc*2);
-      // 랜덤/순환 모드면 각 게임(2팀씩)의 페어링 최적화
-      if(blockMode==='random'||S.pairMode==='cycle'){
+      // 랜덤/순환 모드 + 2코트(=8명)면 최적 분할 적용
+      if((blockMode==='random'||S.pairMode==='cycle')&&nc===2&&blockTeams.length===4){
+        var eight=[];
+        for(var pi=0;pi<blockTeams.length;pi++){
+          eight.push(blockTeams[pi].p1);
+          eight.push(blockTeams[pi].p2);
+        }
+        var split=splitInto2Games(eight);
+        if(split){
+          blockTeams[0].p1=split.g1[0][0]; blockTeams[0].p2=split.g1[0][1];
+          blockTeams[1].p1=split.g1[1][0]; blockTeams[1].p2=split.g1[1][1];
+          blockTeams[2].p1=split.g2[0][0]; blockTeams[2].p2=split.g2[0][1];
+          blockTeams[3].p1=split.g2[1][0]; blockTeams[3].p2=split.g2[1][1];
+        }
+      } else if((blockMode==='random'||S.pairMode==='cycle')) {
+        // 1코트 또는 3코트 이상: 각 게임 4명씩 최적화
         for(var pi=0;pi<blockTeams.length-1;pi+=2){
           var opt=optimizePairing(blockTeams[pi],blockTeams[pi+1]);
           if(opt){
