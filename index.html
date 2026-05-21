@@ -551,16 +551,20 @@ function mkRotationSchedule(){
   var allTeams=[],allMatches=[],blockInfo=[];
   var teamId=0,matchId=0;
 
-  // 누적 출전 횟수 (공평 분배용)
+  // 누적 출전 횟수 & 마지막 출전 세트 (공평 분배 + 텀 조절)
   var playCount={};
-  for(var i=0;i<ps.length;i++) playCount[ps[i].name]=0;
+  var lastPlayedSet={}; // -1 = 아직 안 뜀
+  for(var i=0;i<ps.length;i++){playCount[ps[i].name]=0; lastPlayedSet[ps[i].name]=-1;}
 
-  // 출전 횟수가 적은 순으로 N명 선택 (동점은 랜덤)
-  function pickFewestPlayers(pool,n){
+  // 우선순위: ① 출전 횟수 적은 사람 ② 오래 쉰 사람 ③ 랜덤
+  function pickFewestPlayers(pool,n,curSet){
     var sorted=pool.slice().sort(function(a,b){
       var ca=playCount[a.name]||0, cb=playCount[b.name]||0;
-      if(ca!==cb) return ca-cb;
-      return Math.random()-0.5; // 동점이면 랜덤
+      if(ca!==cb) return ca-cb; // 출전 횟수 적은 사람 우선
+      var la=lastPlayedSet[a.name];if(la===undefined)la=-1;
+      var lb=lastPlayedSet[b.name];if(lb===undefined)lb=-1;
+      if(la!==lb) return la-lb; // 오래 쉰 사람 우선
+      return Math.random()-0.5; // 그래도 동점이면 랜덤
     });
     return sorted.slice(0,n);
   }
@@ -593,7 +597,7 @@ function mkRotationSchedule(){
         var cps=courtPlayers[ci]||[];
         if(cps.length<4) continue;
         // 출전 횟수 적은 4명 선택
-        var playing=pickFewestPlayers(cps,4);
+        var playing=pickFewestPlayers(cps,4,b);
         var rc=buildWithMode(playing,tempH,blockMode);
         var bt=rc.teams.slice(0,2);
         dup=dup||rc.dup;
@@ -602,9 +606,11 @@ function mkRotationSchedule(){
           if(tempH.indexOf(kk)===-1) tempH.push(kk);
           bt[i].id=teamId++;bt[i].blockNum=b+1;bt[i].grp=ci;
           allTeams.push(bt[i]);
-          // 출전 횟수 증가
+          // 출전 횟수 + 마지막 출전 세트 업데이트
           playCount[bt[i].p1.name]=(playCount[bt[i].p1.name]||0)+1;
           playCount[bt[i].p2.name]=(playCount[bt[i].p2.name]||0)+1;
+          lastPlayedSet[bt[i].p1.name]=b;
+          lastPlayedSet[bt[i].p2.name]=b;
         }
         if(bt.length>=2){
           allMatches.push({id:matchId++,t1:bt[0].id,t2:bt[1].id,blockNum:b+1,court:ci});
@@ -619,7 +625,7 @@ function mkRotationSchedule(){
       // 출전 횟수 적은 순으로 needed명 선택 (인원이 부족하면 가능한 만큼)
       var actualNeeded=Math.min(needed,Math.floor(available.length/4)*4);
       if(actualNeeded<4) actualNeeded=4;
-      var playing=pickFewestPlayers(available,actualNeeded);
+      var playing=pickFewestPlayers(available,actualNeeded,b);
       var r=buildWithMode(playing,tempH,blockMode);
       var blockTeams=r.teams.slice(0,nc*2);
       for(var i=0;i<blockTeams.length;i++){
@@ -627,19 +633,23 @@ function mkRotationSchedule(){
         if(tempH.indexOf(kk)===-1) tempH.push(kk);
         blockTeams[i].id=teamId++;blockTeams[i].blockNum=b+1;
         allTeams.push(blockTeams[i]);
-        // 출전 횟수 증가
+        // 출전 횟수 + 마지막 출전 세트 업데이트
         playCount[blockTeams[i].p1.name]=(playCount[blockTeams[i].p1.name]||0)+1;
         playCount[blockTeams[i].p2.name]=(playCount[blockTeams[i].p2.name]||0)+1;
+        lastPlayedSet[blockTeams[i].p1.name]=b;
+        lastPlayedSet[blockTeams[i].p2.name]=b;
       }
       for(var i=0;i<blockTeams.length-1;i+=2){
         allMatches.push({id:matchId++,t1:blockTeams[i].id,t2:blockTeams[i+1].id,blockNum:b+1,court:(i/2)+1});
       }
-      // 쉬는 사람 (대기자)을 standby로 표시
+      // 쉬는 사람 (대기자) 계산 - 1명 차이 날 때만 standby 표시 (코트 수 부족시엔 표시 안 함)
       var resting=available.filter(function(p){
         for(var i=0;i<playing.length;i++) if(playing[i].name===p.name) return false;
         return true;
       });
-      blockInfo.push({blockNum:b+1,standby:resting.length>0?resting[0]:null,dup:r.dup,skip:false,modeLabel:blockLabel,resting:resting});
+      // standby는 인원이 안 맞아 어쩔 수 없이 1명만 빠질 때만 (5명, 9명 같은 경우)
+      var standbyOne=(resting.length===1&&available.length<nc*4+2)?resting[0]:null;
+      blockInfo.push({blockNum:b+1,standby:standbyOne,dup:r.dup,skip:false,modeLabel:blockLabel,resting:resting});
     }
   }
   // 늦참자 합류 세트 추가 (늦참 전원 포함)
