@@ -245,7 +245,7 @@ var S={
   numGames:0,    // 0 = 미입력
   numCourts:0,   // 0 = 미입력 (생성 시 1로 처리)
   matchMode:'rotation', // 'rotation' (전체리그·그룹혼합 제거)
-  groupMode:'intra', // 'intra'=그룹내끼리 | 'any'=그룹상관없이
+  groupMode:'any', // 'any'=전체 혼합(모두 골고루) | 'intra'=각 코트끼리만
   numRotations:10, // 로테이션 세트 수 (기본 10세트)
   blockInfo:[],   // [{blockNum, standby, dup}] — 로테이션 세트 정보
   groups:{},     // {teamId: 1 or 2} — 혼합 모드 그룹 배정
@@ -558,6 +558,27 @@ function mkRotationSchedule(){
   for(var i=0;i<ps.length;i++){playCount[ps[i].name]=0; lastPlayedSet[ps[i].name]=-1;}
   function pairKey(a,b){return [a,b].sort().join('||');}
 
+  // 4명을 두 팀으로 나누는 3가지 페어링 중 가장 다양한 조합 선택
+  function optimizePairing(team1,team2){
+    if(!team1||!team2) return null;
+    var p=[team1.p1,team1.p2,team2.p1,team2.p2];
+    var options=[
+      [{p1:p[0],p2:p[1]},{p1:p[2],p2:p[3]}],
+      [{p1:p[0],p2:p[2]},{p1:p[1],p2:p[3]}],
+      [{p1:p[0],p2:p[3]},{p1:p[1],p2:p[2]}]
+    ];
+    var best=options[0],bestScore=Infinity;
+    for(var i=0;i<options.length;i++){
+      var o=options[i];
+      var s1=pairCount[pairKey(o[0].p1.name,o[0].p2.name)]||0;
+      var s2=pairCount[pairKey(o[1].p1.name,o[1].p2.name)]||0;
+      // 두 팀의 페어 카운트 합 (낮을수록 다양함)
+      var score=s1+s2+Math.abs(s1-s2)*0.5; // 균형도도 고려
+      if(score<bestScore){bestScore=score;best=o;}
+    }
+    return best;
+  }
+
   // 우선순위: ① 출전 횟수 ② 오래 쉰 사람 ③ 이미 뽑힌 사람과 페어 횟수 적은 사람
   function pickFewestPlayers(pool,n,curSet){
     var picked=[];
@@ -616,6 +637,11 @@ function mkRotationSchedule(){
         var playing=pickFewestPlayers(cps,4,b);
         var rc=buildWithMode(playing,tempH,blockMode);
         var bt=rc.teams.slice(0,2);
+        // 랜덤/순환 모드면 페어링 최적화 (균형/동급은 의도 보존)
+        if(bt.length===2&&(blockMode==='random'||S.pairMode==='cycle')){
+          var opt=optimizePairing(bt[0],bt[1]);
+          if(opt){bt[0].p1=opt[0].p1;bt[0].p2=opt[0].p2;bt[1].p1=opt[1].p1;bt[1].p2=opt[1].p2;}
+        }
         dup=dup||rc.dup;
         for(var i=0;i<bt.length;i++){
           var kk=pk(bt[i].p1,bt[i].p2);
@@ -646,6 +672,16 @@ function mkRotationSchedule(){
       var playing=pickFewestPlayers(available,actualNeeded,b);
       var r=buildWithMode(playing,tempH,blockMode);
       var blockTeams=r.teams.slice(0,nc*2);
+      // 랜덤/순환 모드면 각 게임(2팀씩)의 페어링 최적화
+      if(blockMode==='random'||S.pairMode==='cycle'){
+        for(var pi=0;pi<blockTeams.length-1;pi+=2){
+          var opt=optimizePairing(blockTeams[pi],blockTeams[pi+1]);
+          if(opt){
+            blockTeams[pi].p1=opt[0].p1;blockTeams[pi].p2=opt[0].p2;
+            blockTeams[pi+1].p1=opt[1].p1;blockTeams[pi+1].p2=opt[1].p2;
+          }
+        }
+      }
       for(var i=0;i<blockTeams.length;i++){
         var kk=pk(blockTeams[i].p1,blockTeams[i].p2);
         if(tempH.indexOf(kk)===-1) tempH.push(kk);
@@ -1394,10 +1430,10 @@ function mStep2Html(){
   if(showGroupMode){
     var gn1=S.groupNames[0],gn2=S.groupNames[1];
     var isIntra=S.groupMode!=='any';
-    groupModeHtml='<div class="lbl" style="margin-bottom:5px">그룹 매치 방식</div>'
+    groupModeHtml='<div class="lbl" style="margin-bottom:5px">코트 매치 방식</div>'
       +'<div style="display:flex;gap:6px;margin-bottom:14px">'
-        +'<button data-a="setgm" data-v="intra" style="flex:1;padding:10px;border-radius:10px;font-weight:700;font-size:13px;min-height:44px;border:1px solid '+(isIntra?'var(--lime)':'var(--border)')+';background:'+(isIntra?'var(--tab-active)':'var(--card)')+';color:'+(isIntra?'var(--lime)':'var(--muted)')+'">'+gn1+' · '+gn2+'<br><span style="font-size:10px;font-weight:400">각 그룹끼리</span></button>'
-        +'<button data-a="setgm" data-v="any" style="flex:1;padding:10px;border-radius:10px;font-weight:700;font-size:13px;min-height:44px;border:1px solid '+(!isIntra?'var(--lime)':'var(--border)')+';background:'+(!isIntra?'var(--tab-active)':'var(--card)')+';color:'+(!isIntra?'var(--lime)':'var(--muted)')+'">전체 혼합<br><span style="font-size:10px;font-weight:400">그룹 상관없이</span></button>'
+        +'<button data-a="setgm" data-v="any" style="flex:1;padding:10px;border-radius:10px;font-weight:700;font-size:13px;min-height:44px;border:1px solid '+(!isIntra?'var(--lime)':'var(--border)')+';background:'+(!isIntra?'var(--tab-active)':'var(--card)')+';color:'+(!isIntra?'var(--lime)':'var(--muted)')+'">전체 혼합<br><span style="font-size:10px;font-weight:400">모두 골고루 (추천)</span></button>'
+        +'<button data-a="setgm" data-v="intra" style="flex:1;padding:10px;border-radius:10px;font-weight:700;font-size:13px;min-height:44px;border:1px solid '+(isIntra?'var(--lime)':'var(--border)')+';background:'+(isIntra?'var(--tab-active)':'var(--card)')+';color:'+(isIntra?'var(--lime)':'var(--muted)')+'">코트 분리<br><span style="font-size:10px;font-weight:400">각 코트끼리만</span></button>'
       +'</div>';
   }
   var sbNtc='';
