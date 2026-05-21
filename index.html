@@ -1180,6 +1180,7 @@ function mStep1Html(){
     +courtSummary;
 
   // ── 참석자 목록 ──
+  out+='<div id="attend-list-body">';
   if(filtered.length===0){
     out+='<div style="text-align:center;padding:24px;color:var(--muted);font-size:14px">\''+q+'\' 검색 결과가 없어요</div>';
   } else {
@@ -1219,6 +1220,7 @@ function mStep1Html(){
         +'</div>';
     }
   }
+  out+='</div>'; // attend-list-body
 
   // 요약 + 늦참 반영 버튼
   if(selCount>=3){
@@ -1448,6 +1450,60 @@ function mStep2Html(){
 // 렌더
 // ══════════════════════════════════════════════════════════════════
 // 명단 목록만 부분 업데이트 (검색 시 포커스 유지)
+// 참석자 목록만 부분 업데이트 (검색 시 포커스 유지)
+function renderAttendList(){
+  var listEl=document.getElementById('attend-list-body');
+  if(!listEl){render();return;}
+  var nc=Math.max(1,S.numCourts||1);
+  var q=(S.attendSearch||'').trim().toLowerCase();
+  var filtered=q?S.roster.filter(function(p){return p.name.toLowerCase().indexOf(q)!==-1;}):S.roster;
+  var courtCounts={};
+  for(var ci=1;ci<=nc;ci++) courtCounts[ci]=0;
+  var lateCount=0;
+  for(var k in S.selected){
+    if(!S.selected[k]) continue;
+    if(S.lateArrivals[k]){lateCount++;continue;}
+    var c=S.playerGroups[k]||1;
+    courtCounts[c]=(courtCounts[c]||0)+1;
+  }
+
+  var html='';
+  if(filtered.length===0){
+    html='<div style="text-align:center;padding:24px;color:var(--muted);font-size:14px">\''+q+'\' 검색 결과가 없어요</div>';
+  } else {
+    for(var i=0;i<filtered.length;i++){
+      var p=filtered[i],isSel=!!S.selected[p.name];
+      var isLate=!!S.lateArrivals[p.name];
+      var pCourt=S.playerGroups[p.name]||1;
+      var pc=COURT_COLORS[(pCourt-1)%COURT_COLORS.length];
+      var courtBtns='<div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;align-items:flex-end">';
+      var courtRow='<div style="display:flex;gap:2px">';
+      for(var ci=1;ci<=nc;ci++){
+        var cc=COURT_COLORS[(ci-1)%COURT_COLORS.length];
+        var isAc=isSel&&pCourt===ci;
+        var cnt=courtCounts[ci]||0;
+        courtRow+='<button data-a="courtSelect" data-n="'+p.name+'" data-v="'+ci+'" style="padding:3px 7px;border-radius:6px;font-size:10px;font-weight:800;min-height:26px;border:1px solid '+(isAc?cc:'var(--border)')+';background:'+(isAc?cc+'28':'transparent')+';color:'+(isAc?cc:'var(--muted)')+'">'+ci+'코트<span style="font-size:9px;opacity:.7">('+cnt+')</span></button>';
+      }
+      courtRow+='</div>';
+      var lateBtn=isSel?'<button data-a="togglelate" data-n="'+p.name+'" style="padding:1px 7px;border-radius:6px;font-size:10px;font-weight:700;min-height:20px;border:1px solid '+(isLate?'rgba(241,160,53,.5)':'var(--border)')+';background:'+(isLate?'rgba(241,160,53,.2)':'transparent')+';color:'+(isLate?'#f1a035':'var(--muted)')+'">'+(isLate?'🕐 늦참':'늦참')+'</button>':'';
+      courtBtns+=courtRow+lateBtn+'</div>';
+      var leftBorderColor=isSel?(isLate?'rgba(241,160,53,.5)':pc+'88'):'transparent';
+      html+='<div class="attend-item'+(isSel?' selected':'')+'" style="border-left:3px solid '+leftBorderColor+';padding-left:10px;'+(isLate?'border-color:rgba(241,160,53,.35);background:rgba(241,160,53,.06);':'')+'">'
+        +'<div class="chk-box'+(isSel?' on':'')+'">'+( isSel?'✓':'')+'</div>'
+        +'<div class="attend-info">'
+          +'<div class="attend-name">'+p.name
+            +(isSel?'<span style="font-size:10px;font-weight:700;color:'+pc+';margin-left:5px">'+pCourt+'코트</span>':'')
+            +(isLate?'<span style="font-size:10px;font-weight:700;color:#f1a035;margin-left:4px">🕐 늦참</span>':'')
+          +'</div>'
+          +'<div class="attend-badges">'+gbadge(p.gender)+lvbadge(p.level)+'</div>'
+        +'</div>'
+        +courtBtns
+        +'</div>';
+    }
+  }
+  listEl.innerHTML=html;
+}
+
 function renderRosterList(){
   var listEl=document.getElementById('roster-list-body');
   if(!listEl){render();return;} // 없으면 전체 렌더
@@ -1548,16 +1604,17 @@ function render(){
   if(inpNg){inpNg.addEventListener('input',function(e){S.numGames=parseInt(e.target.value)||0;});}
   var asrchEl=document.getElementById('asrch');
   if(asrchEl){
-    asrchEl.addEventListener('compositionstart',function(){_composing=true;});
+    var _aComposing=false;
+    asrchEl.addEventListener('compositionstart',function(){_aComposing=true;});
     asrchEl.addEventListener('compositionend',function(e){
-      _composing=false;
+      _aComposing=false;
       S.attendSearch=e.target.value;
-      render();
+      renderAttendList();
     });
     asrchEl.addEventListener('input',function(e){
-      if(!_composing){S.attendSearch=e.target.value;render();}
+      S.attendSearch=e.target.value;
+      renderAttendList();
     });
-    if(S.attendSearch){asrchEl.setSelectionRange(asrchEl.value.length,asrchEl.value.length);}
   }
   var gn1el=document.getElementById('gn1'),gn2el=document.getElementById('gn2');
   if(gn1el){gn1el.addEventListener('input',function(e){S.groupNames[0]=e.target.value||'1그룹';fbSaveGnames();});}
