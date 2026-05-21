@@ -1325,7 +1325,7 @@ function mStep2Html(){
         +'<button data-a="setgm" data-v="any" style="flex:1;padding:10px;border-radius:10px;font-weight:700;font-size:13px;min-height:44px;border:1px solid '+(!isIntra?'var(--lime)':'var(--border)')+';background:'+(!isIntra?'var(--tab-active)':'var(--card)')+';color:'+(!isIntra?'var(--lime)':'var(--muted)')+'">전체 혼합<br><span style="font-size:10px;font-weight:400">그룹 상관없이</span></button>'
       +'</div>';
   }
-  var sbNtc=S.standby?ntc('#f1a035','⏳',S.standby.name+' — 이번 라운드 대기 중'):'';
+  var sbNtc='';
   var dupNtc=S.dup?ntc('var(--red)','⚠️','파트너가 이전 라운드와 겹쳤어요','모든 조합을 이미 사용해서 불가피해요'):'';
   var cycleNtc='';
   if(S.pairMode==='cycle'){
@@ -1357,7 +1357,7 @@ function mStep2Html(){
 
     // 세트 구분선
     var biObj=null;for(var bi2=0;bi2<S.blockInfo.length;bi2++)if(S.blockInfo[bi2].blockNum===bn){biObj=S.blockInfo[bi2];break;}
-    var sbLabel=biObj&&biObj.standby?'<span style="font-size:11px;color:var(--warn)"> · ⏳'+biObj.standby.name+'</span>':'';
+    var sbLabel='';
     var dupLabel=biObj&&biObj.dup?'<span style="font-size:11px;color:var(--red)"> · ⚠️</span>':'';
     var mLabel=biObj&&biObj.modeLabel?'<span style="font-size:11px;color:var(--muted)"> · '+biObj.modeLabel+'</span>':'';
     mCards+='<div class="set-divider"><div class="set-divider-line"></div>'
