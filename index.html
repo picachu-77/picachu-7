@@ -612,7 +612,8 @@ function mkRotationSchedule(){
     ];
   }
 
-  // 우선순위: 출전 횟수 → 페어 다양성 → 오래 쉰 사람 → 랜덤
+  // 우선순위: 출전 횟수(2 차이 이상) → 페어 다양성 → 출전 횟수(1 차이) → 랜덤
+  // 연속 출전은 허용 (팀 조합 다양성 우선)
   function pickFewestPlayers(pool,n,curSet){
     var picked=[];
     var remaining=pool.slice();
@@ -621,7 +622,7 @@ function mkRotationSchedule(){
         var ca=playCount[a.name]||0, cb=playCount[b.name]||0;
         // 출전 횟수 차이가 2 이상이면 절대 우선
         if(Math.abs(ca-cb)>=2) return ca-cb;
-        // 이미 뽑힌 사람들과의 페어 카운트 (다양성 우선)
+        // 이미 뽑힌 사람들과의 페어 카운트 (다양성 강화)
         if(picked.length>0){
           var sa=0,sb=0;
           for(var pi=0;pi<picked.length;pi++){
@@ -632,10 +633,6 @@ function mkRotationSchedule(){
         }
         // 출전 횟수 (1차이 이내)
         if(ca!==cb) return ca-cb;
-        // 오래 쉰 사람
-        var la=lastPlayedSet[a.name];if(la===undefined)la=-1;
-        var lb=lastPlayedSet[b.name];if(lb===undefined)lb=-1;
-        if(la!==lb) return la-lb;
         return Math.random()-0.5;
       });
       picked.push(remaining.shift());
