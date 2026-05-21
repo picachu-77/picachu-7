@@ -551,22 +551,38 @@ function mkRotationSchedule(){
   var allTeams=[],allMatches=[],blockInfo=[];
   var teamId=0,matchId=0;
 
-  // 누적 출전 횟수 & 마지막 출전 세트 (공평 분배 + 텀 조절)
+  // 누적 출전 횟수 & 마지막 출전 세트 & 페어 카운트 (공평 분배 + 텀 조절 + 팀 다양성)
   var playCount={};
-  var lastPlayedSet={}; // -1 = 아직 안 뜀
+  var lastPlayedSet={};
+  var pairCount={}; // 두 사람이 같은 팀이었던 횟수
   for(var i=0;i<ps.length;i++){playCount[ps[i].name]=0; lastPlayedSet[ps[i].name]=-1;}
+  function pairKey(a,b){return [a,b].sort().join('||');}
 
-  // 우선순위: ① 출전 횟수 적은 사람 ② 오래 쉰 사람 ③ 랜덤
+  // 우선순위: ① 출전 횟수 ② 오래 쉰 사람 ③ 이미 뽑힌 사람과 페어 횟수 적은 사람
   function pickFewestPlayers(pool,n,curSet){
-    var sorted=pool.slice().sort(function(a,b){
-      var ca=playCount[a.name]||0, cb=playCount[b.name]||0;
-      if(ca!==cb) return ca-cb; // 출전 횟수 적은 사람 우선
-      var la=lastPlayedSet[a.name];if(la===undefined)la=-1;
-      var lb=lastPlayedSet[b.name];if(lb===undefined)lb=-1;
-      if(la!==lb) return la-lb; // 오래 쉰 사람 우선
-      return Math.random()-0.5; // 그래도 동점이면 랜덤
-    });
-    return sorted.slice(0,n);
+    var picked=[];
+    var remaining=pool.slice();
+    while(picked.length<n&&remaining.length>0){
+      remaining.sort(function(a,b){
+        var ca=playCount[a.name]||0, cb=playCount[b.name]||0;
+        if(ca!==cb) return ca-cb;
+        var la=lastPlayedSet[a.name];if(la===undefined)la=-1;
+        var lb=lastPlayedSet[b.name];if(lb===undefined)lb=-1;
+        if(la!==lb) return la-lb;
+        // 이미 뽑힌 사람과의 누적 페어 카운트
+        if(picked.length>0){
+          var sa=0,sb=0;
+          for(var pi=0;pi<picked.length;pi++){
+            sa+=(pairCount[pairKey(a.name,picked[pi].name)]||0);
+            sb+=(pairCount[pairKey(b.name,picked[pi].name)]||0);
+          }
+          if(sa!==sb) return sa-sb;
+        }
+        return Math.random()-0.5;
+      });
+      picked.push(remaining.shift());
+    }
+    return picked;
   }
 
   // 코트별 선수 분류 (numCourts개 코트)
@@ -606,11 +622,13 @@ function mkRotationSchedule(){
           if(tempH.indexOf(kk)===-1) tempH.push(kk);
           bt[i].id=teamId++;bt[i].blockNum=b+1;bt[i].grp=ci;
           allTeams.push(bt[i]);
-          // 출전 횟수 + 마지막 출전 세트 업데이트
+          // 출전 횟수 + 마지막 출전 세트 + 페어 카운트 업데이트
           playCount[bt[i].p1.name]=(playCount[bt[i].p1.name]||0)+1;
           playCount[bt[i].p2.name]=(playCount[bt[i].p2.name]||0)+1;
           lastPlayedSet[bt[i].p1.name]=b;
           lastPlayedSet[bt[i].p2.name]=b;
+          var pk2=pairKey(bt[i].p1.name,bt[i].p2.name);
+          pairCount[pk2]=(pairCount[pk2]||0)+1;
         }
         if(bt.length>=2){
           allMatches.push({id:matchId++,t1:bt[0].id,t2:bt[1].id,blockNum:b+1,court:ci});
@@ -633,11 +651,13 @@ function mkRotationSchedule(){
         if(tempH.indexOf(kk)===-1) tempH.push(kk);
         blockTeams[i].id=teamId++;blockTeams[i].blockNum=b+1;
         allTeams.push(blockTeams[i]);
-        // 출전 횟수 + 마지막 출전 세트 업데이트
+        // 출전 횟수 + 마지막 출전 세트 + 페어 카운트 업데이트
         playCount[blockTeams[i].p1.name]=(playCount[blockTeams[i].p1.name]||0)+1;
         playCount[blockTeams[i].p2.name]=(playCount[blockTeams[i].p2.name]||0)+1;
         lastPlayedSet[blockTeams[i].p1.name]=b;
         lastPlayedSet[blockTeams[i].p2.name]=b;
+        var pk2=pairKey(blockTeams[i].p1.name,blockTeams[i].p2.name);
+        pairCount[pk2]=(pairCount[pk2]||0)+1;
       }
       for(var i=0;i<blockTeams.length-1;i+=2){
         allMatches.push({id:matchId++,t1:blockTeams[i].id,t2:blockTeams[i+1].id,blockNum:b+1,court:(i/2)+1});
