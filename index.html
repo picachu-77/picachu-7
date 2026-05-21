@@ -1053,7 +1053,9 @@ function printSchedule(){
     // 세트 헤더
     var bi=null;for(var bi2=0;bi2<S.blockInfo.length;bi2++)if(S.blockInfo[bi2].blockNum===bn){bi=S.blockInfo[bi2];break;}
     var sLabel='세트 '+bn+(bi&&bi.modeLabel?' · '+bi.modeLabel:'');
-    body+='<div class="set-block'+(si>0?' mt':'')+'">';
+    // 6세트마다 페이지 분할 (마지막 세트는 제외)
+    var pageBreakClass=((si+1)%6===0&&si!==blockOrder.length-1)?' page-break':'';
+    body+='<div class="set-block'+(si>0?' mt':'')+pageBreakClass+'">';
     body+='<div class="set-hd">'+sLabel+'</div>';
 
     // 코트 가로 배치
@@ -1096,6 +1098,7 @@ function printSchedule(){
     +'.hd h2{font-size:20px;font-weight:800;color:#1a5c42;margin-bottom:3px}'
     +'.hd p{font-size:12px;color:#888}'
     +'.set-block{page-break-inside:avoid;break-inside:avoid;margin-bottom:6px}'
+    +'.page-break{page-break-after:always;break-after:page}'
     +'.set-hd{font-size:12px;font-weight:700;color:#1a5c42;padding:4px 0;margin-bottom:6px}'
     +'.set-block.mt{margin-top:14px;padding-top:10px;border-top:1px solid #ddd}'
     +'.court-row{display:flex;gap:8px;margin-bottom:4px;page-break-inside:avoid;break-inside:avoid}'
