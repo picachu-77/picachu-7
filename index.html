@@ -1053,14 +1053,14 @@ function printSchedule(){
     // 세트 헤더
     var bi=null;for(var bi2=0;bi2<S.blockInfo.length;bi2++)if(S.blockInfo[bi2].blockNum===bn){bi=S.blockInfo[bi2];break;}
     var sLabel='세트 '+bn+(bi&&bi.modeLabel?' · '+bi.modeLabel:'');
-    body+='<div class="set-hd'+(si>0?' mt':'')+'">'+sLabel+'</div>';
+    body+='<div class="set-block'+(si>0?' mt':'')+'">';
+    body+='<div class="set-hd">'+sLabel+'</div>';
 
     // 코트 가로 배치
     body+='<div class="court-row">';
     for(var ci=0;ci<courtIds.length;ci++){
       var cid=parseInt(courtIds[ci]);
       var cc=PCOLORS[(cid-1)%PCOLORS.length];
-      var cbg=cid===1?'#e3f2fd':cid===2?'#fce4ec':cid===3?'#e8f5e9':cid===4?'#fff3e0':'#f3e5f5';
       var cms=setData[courtIds[ci]];
       body+='<div class="court-col">';
       if(ncols>1){
@@ -1084,7 +1084,8 @@ function printSchedule(){
       }
       body+='</div>';
     }
-    body+='</div>';
+    body+='</div>'; // court-row
+    body+='</div>'; // set-block
   }
 
   var html='<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>대진표</title>'
@@ -1094,12 +1095,13 @@ function printSchedule(){
     +'.hd{text-align:center;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #1a5c42}'
     +'.hd h2{font-size:20px;font-weight:800;color:#1a5c42;margin-bottom:3px}'
     +'.hd p{font-size:12px;color:#888}'
+    +'.set-block{page-break-inside:avoid;break-inside:avoid;margin-bottom:6px}'
     +'.set-hd{font-size:12px;font-weight:700;color:#1a5c42;padding:4px 0;margin-bottom:6px}'
-    +'.set-hd.mt{margin-top:18px;padding-top:14px;border-top:1px solid #ddd}'
-    +'.court-row{display:flex;gap:8px;margin-bottom:4px}'
+    +'.set-block.mt{margin-top:14px;padding-top:10px;border-top:1px solid #ddd}'
+    +'.court-row{display:flex;gap:8px;margin-bottom:4px;page-break-inside:avoid;break-inside:avoid}'
     +'.court-col{flex:1}'
     +'.court-lbl{font-size:11px;font-weight:800;padding:3px 0;text-align:center;margin-bottom:4px}'
-    +'.match-card{border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;margin-bottom:6px}'
+    +'.match-card{border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;margin-bottom:6px;page-break-inside:avoid;break-inside:avoid}'
     +'.match-body{display:flex;align-items:center;padding:10px 8px}'
     +'.team{flex:1}'
     +'.team.r{text-align:right}'
