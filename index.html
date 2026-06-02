@@ -682,30 +682,17 @@ function mkRotationSchedule(){
     return candidates.slice(bestStart,bestStart+n);
   }
 
-  // 수준별(넓게): 인접 등급도 섞이게 — 출전 적은 사람 우선, 같은 사람 반복 방지
+  // 수준별(넓게): 출전 공평성 우선 확보 후, 그 안에서 인접 등급끼리 묶기
   function pickWideLevelGroup(pool,n,curSet){
     if(pool.length<=n) return pool.slice();
-    // 1순위: 출전 횟수, 2순위: 오래 쉰 사람 → 후보 시작점 1명 선택
-    var sorted=pool.slice().sort(function(a,b){
-      var ca=playCount[a.name]||0, cb=playCount[b.name]||0;
-      if(ca!==cb) return ca-cb;
-      var la=lastPlayedSet[a.name];if(la===undefined||la===null)la=-1;
-      var lb=lastPlayedSet[b.name];if(lb===undefined||lb===null)lb=-1;
-      if(la!==lb) return la-lb;
-      return Math.random()-0.5;
-    });
-    var anchor=sorted[0]; // 가장 우선인 사람을 기준으로
-    // anchor 등급 근처의 후보들을 모음 (등급 거리 + 출전횟수 가중)
-    var anchorLv=lsc(anchor);
-    var rest=pool.filter(function(p){return p.name!==anchor.name;});
-    rest.sort(function(a,b){
-      // 등급 거리 (가까운 사람 우선) + 출전 횟수 보정
-      var da=Math.abs(lsc(a)-anchorLv)+(playCount[a.name]||0)*0.5;
-      var db=Math.abs(lsc(b)-anchorLv)+(playCount[b.name]||0)*0.5;
-      if(da!==db) return da-db;
-      return Math.random()-0.5;
-    });
-    return [anchor].concat(rest.slice(0,n-1));
+    // 출전 공평성을 지킨 후보를 약간 넓게 확보 (n+2명)
+    var poolSize=Math.min(pool.length,n+2);
+    var cand=pickFewestPlayers(pool,poolSize,curSet);
+    // 등급순 정렬 후 인접 n명 (등급 비슷하되 매번 약간 다른 멤버)
+    cand.sort(function(a,b){return lsc(a)-lsc(b);});
+    var maxStart=cand.length-n;
+    var startIdx=maxStart>0?Math.floor(Math.random()*(maxStart+1)):0;
+    return cand.slice(startIdx,startIdx+n);
   }
 
   // 우선순위: 출전 횟수 → 3판이상 쉰사람 강제(상한) → 다양성 → 오래 쉰 사람 → 랜덤
@@ -818,20 +805,19 @@ function mkRotationSchedule(){
       // 모드별 선수 선택
       var playing;
       if(blockMode==='sameclose'){
-        // 1단계: 출전 횟수 적은 순으로 actualNeeded명 우선 확보 (공평성)
+        // 출전 공평성 지킨 actualNeeded명 → 등급순 정렬 (비슷한 수준끼리)
         var pool=pickFewestPlayers(available,actualNeeded,b);
-        // 2단계: 그 안에서 등급순 정렬 (비슷한 수준끼리 묶이도록)
         pool.sort(function(a,b){return lsc(a)-lsc(b);});
         playing=pool;
       } else if(blockMode==='samewide'){
-        // 넓게: 출전 적은 순 + 오래 쉰 사람 우선으로 (actualNeeded+4)명 후보 → 등급순 정렬 후 윈도우 셔플
-        var widePoolSize=Math.min(available.length,actualNeeded+4);
-        var widePool=pickFewestPlayers(available,widePoolSize,b);
-        widePool.sort(function(a,b){return lsc(a)-lsc(b);});
-        // 등급 인접한 actualNeeded명 윈도우를 랜덤하게 선택 (매번 다른 멤버)
-        var maxStart=widePool.length-actualNeeded;
-        var startIdx=maxStart>0?Math.floor(Math.random()*(maxStart+1)):0;
-        playing=widePool.slice(startIdx,startIdx+actualNeeded);
+        // 넓게: 공평성 지킨 actualNeeded명 확보 → 등급순 정렬 후 인접하게 살짝 섞기
+        var pool=pickFewestPlayers(available,actualNeeded,b);
+        pool.sort(function(a,b){return lsc(a)-lsc(b);});
+        // 인접한 사람끼리만 가볍게 셔플 (등급 인접 섞임, 공평성은 유지)
+        for(var sw=0;sw<pool.length-1;sw+=2){
+          if(Math.random()<0.5){var tmp=pool[sw];pool[sw]=pool[sw+1];pool[sw+1]=tmp;}
+        }
+        playing=pool;
       } else {
         playing=pickFewestPlayers(available,actualNeeded,b);
       }
