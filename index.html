@@ -576,14 +576,28 @@ function mkRotationSchedule(){
   var allTeams=[],allMatches=[],blockInfo=[];
   var teamId=0,matchId=0;
 
-  // 누적 출전 횟수 & 마지막 출전 세트 & 페어 카운트 (공평 분배 + 텀 조절 + 팀 다양성)
+  // 누적 출전 횟수 & 마지막 출전 세트 & 페어 카운트 & 함께 게임 횟수
   var playCount={};
   var lastPlayedSet={};
-  var pairCount={}; // 두 사람이 같은 팀이었던 횟수
+  var pairCount={};      // 두 사람이 같은 팀(파트너)이었던 횟수
+  var encounterCount={}; // 두 사람이 같은 게임(4명)에 있던 횟수 (상대 포함)
   for(var i=0;i<ps.length;i++){playCount[ps[i].name]=0; lastPlayedSet[ps[i].name]=-1;}
   function pairKey(a,b){return [a,b].sort().join('||');}
+  // 4명이 한 게임에 모였을 때 서로 만난 횟수 기록
+  function recordEncounter(four){
+    for(var x=0;x<four.length;x++)for(var y=x+1;y<four.length;y++){
+      var k=pairKey(four[x].name,four[y].name);
+      encounterCount[k]=(encounterCount[k]||0)+1;
+    }
+  }
+  // 후보가 이미 뽑힌 그룹과 얼마나 자주 만났는지 합산
+  function encScore(cand,group){
+    var s=0;
+    for(var i=0;i<group.length;i++) s+=(encounterCount[pairKey(cand.name,group[i].name)]||0);
+    return s;
+  }
 
-  // 4명의 3가지 페어링 중 페어 카운트 합이 가장 적은 것
+  // 4명의 3가지 페어링 중 점수가 가장 낮은 것 (파트너 중복 + 상대 만남 중복)
   function findBestPairing(four){
     if(!four||four.length!==4) return null;
     var options=[
@@ -594,18 +608,27 @@ function mkRotationSchedule(){
     var best=null,bestScore=Infinity;
     for(var i=0;i<options.length;i++){
       var o=options[i];
-      var s=(pairCount[pairKey(o[0][0].name,o[0][1].name)]||0)+
-            (pairCount[pairKey(o[1][0].name,o[1][1].name)]||0);
-      if(s<bestScore){bestScore=s;best=o;}
+      // 파트너 중복 (같은 팀이었던 횟수)
+      var partnerS=(pairCount[pairKey(o[0][0].name,o[0][1].name)]||0)+
+                   (pairCount[pairKey(o[1][0].name,o[1][1].name)]||0);
+      if(partnerS<bestScore){bestScore=partnerS;best=o;}
     }
     return {pairing:best,score:bestScore};
+  }
+
+  // 4명이 서로 만난 총 횟수 (게임 내 다양성)
+  function groupEncScore(four){
+    var s=0;
+    for(var x=0;x<four.length;x++)for(var y=x+1;y<four.length;y++){
+      s+=(encounterCount[pairKey(four[x].name,four[y].name)]||0);
+    }
+    return s;
   }
 
   // 8명을 2게임(4명+4명)으로 나누는 최적 분할 + 페어링
   function splitInto2Games(eight){
     if(!eight||eight.length<8) return null;
     var bestSplit=null,bestScore=Infinity;
-    // 첫 인덱스 0 고정 (대칭 중복 제거), 다른 3명 선택
     for(var b=1;b<6;b++){
       for(var c=b+1;c<7;c++){
         for(var d=c+1;d<8;d++){
@@ -617,7 +640,9 @@ function mkRotationSchedule(){
           var p1=findBestPairing(g1);
           var p2=findBestPairing(g2);
           if(!p1||!p2) continue;
-          var s=p1.score+p2.score;
+          // 점수 = 파트너 중복 + 게임 내 만남 중복(가중치 높임)
+          var encS=groupEncScore(g1)+groupEncScore(g2);
+          var s=(p1.score+p2.score)+encS*3;
           if(s<bestScore){bestScore=s;bestSplit={g1:p1.pairing,g2:p2.pairing};}
         }
       }
@@ -683,21 +708,24 @@ function mkRotationSchedule(){
     return [anchor].concat(rest.slice(0,n-1));
   }
 
-  // 우선순위: 출전 횟수 → 오래 쉰 사람(텀 방지) → 페어 다양성 → 랜덤
+  // 우선순위: 출전 횟수 → 오래 쉰 사람(텀) → 함께 게임 적게 한 사람(다양성) → 페어 다양성 → 랜덤
   function pickFewestPlayers(pool,n,curSet){
     var picked=[];
     var remaining=pool.slice();
     while(picked.length<n&&remaining.length>0){
       remaining.sort(function(a,b){
         var ca=playCount[a.name]||0, cb=playCount[b.name]||0;
-        // 1순위: 출전 횟수 (적은 사람 먼저)
+        // 1순위: 출전 횟수
         if(ca!==cb) return ca-cb;
-        // 2순위: 오래 쉰 사람 (마지막 출전이 오래된 사람 먼저) — 텀 방지
+        // 2순위: 오래 쉰 사람 (텀 방지)
         var la=lastPlayedSet[a.name];if(la===undefined||la===null)la=-1;
         var lb=lastPlayedSet[b.name];if(lb===undefined||lb===null)lb=-1;
         if(la!==lb) return la-lb;
-        // 3순위: 페어 다양성 (이미 뽑힌 사람과 덜 만난 사람)
+        // 3순위: 이미 뽑힌 그룹과 함께 게임한 횟수 (적은 사람 우선 = 새로운 멤버)
         if(picked.length>0){
+          var ea=encScore(a,picked), eb=encScore(b,picked);
+          if(ea!==eb) return ea-eb;
+          // 4순위: 파트너 페어 다양성
           var sa=0,sb=0;
           for(var pi=0;pi<picked.length;pi++){
             sa+=(pairCount[pairKey(a.name,picked[pi].name)]||0);
@@ -771,6 +799,7 @@ function mkRotationSchedule(){
         }
         if(bt.length>=2){
           allMatches.push({id:matchId++,t1:bt[0].id,t2:bt[1].id,blockNum:b+1,court:ci});
+          recordEncounter([bt[0].p1,bt[0].p2,bt[1].p1,bt[1].p2]);
         }
       }
       blockInfo.push({blockNum:b+1,standby:null,dup:dup,skip:false,modeLabel:blockLabel});
@@ -843,6 +872,7 @@ function mkRotationSchedule(){
       }
       for(var i=0;i<blockTeams.length-1;i+=2){
         allMatches.push({id:matchId++,t1:blockTeams[i].id,t2:blockTeams[i+1].id,blockNum:b+1,court:(i/2)+1});
+        recordEncounter([blockTeams[i].p1,blockTeams[i].p2,blockTeams[i+1].p1,blockTeams[i+1].p2]);
       }
       // 쉬는 사람 (대기자) 계산 - 1명 차이 날 때만 standby 표시 (코트 수 부족시엔 표시 안 함)
       var resting=available.filter(function(p){
