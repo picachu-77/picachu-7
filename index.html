@@ -655,17 +655,20 @@ function mkRotationSchedule(){
     return candidates.slice(bestStart,bestStart+n);
   }
 
-  // 우선순위: 출전 횟수(2 차이 이상) → 페어 다양성 → 출전 횟수(1 차이) → 랜덤
-  // 연속 출전은 허용 (팀 조합 다양성 우선)
+  // 우선순위: 출전 횟수 → 오래 쉰 사람(텀 방지) → 페어 다양성 → 랜덤
   function pickFewestPlayers(pool,n,curSet){
     var picked=[];
     var remaining=pool.slice();
     while(picked.length<n&&remaining.length>0){
       remaining.sort(function(a,b){
         var ca=playCount[a.name]||0, cb=playCount[b.name]||0;
-        // 출전 횟수 차이가 2 이상이면 절대 우선
-        if(Math.abs(ca-cb)>=2) return ca-cb;
-        // 이미 뽑힌 사람들과의 페어 카운트 (다양성 강화)
+        // 1순위: 출전 횟수 (적은 사람 먼저)
+        if(ca!==cb) return ca-cb;
+        // 2순위: 오래 쉰 사람 (마지막 출전이 오래된 사람 먼저) — 텀 방지
+        var la=lastPlayedSet[a.name];if(la===undefined||la===null)la=-1;
+        var lb=lastPlayedSet[b.name];if(lb===undefined||lb===null)lb=-1;
+        if(la!==lb) return la-lb;
+        // 3순위: 페어 다양성 (이미 뽑힌 사람과 덜 만난 사람)
         if(picked.length>0){
           var sa=0,sb=0;
           for(var pi=0;pi<picked.length;pi++){
@@ -674,8 +677,6 @@ function mkRotationSchedule(){
           }
           if(sa!==sb) return sa-sb;
         }
-        // 출전 횟수 (1차이 이내)
-        if(ca!==cb) return ca-cb;
         return Math.random()-0.5;
       });
       picked.push(remaining.shift());
@@ -754,13 +755,11 @@ function mkRotationSchedule(){
       // 모드별 선수 선택
       var playing;
       if(blockMode==='sameclose'){
-        var withC=available.map(function(p){return {p:p,c:playCount[p.name]||0};});
-        withC.sort(function(a,b){var d=a.c-b.c; return d!==0?d:lsc(a.p)-lsc(b.p);});
-        var minC2=withC[0].c;
-        var cand=withC.filter(function(x){return x.c<=minC2+1;}).map(function(x){return x.p;});
-        if(cand.length<actualNeeded) cand=withC.slice(0,Math.max(actualNeeded,actualNeeded*2)).map(function(x){return x.p;});
-        cand.sort(function(a,b){return lsc(a)-lsc(b);});
-        playing=cand.slice(0,actualNeeded);
+        // 1단계: 출전 횟수 적은 순으로 actualNeeded명 우선 확보 (공평성)
+        var pool=pickFewestPlayers(available,actualNeeded,b);
+        // 2단계: 그 안에서 등급순 정렬 (비슷한 수준끼리 묶이도록)
+        pool.sort(function(a,b){return lsc(a)-lsc(b);});
+        playing=pool;
       } else {
         playing=pickFewestPlayers(available,actualNeeded,b);
       }
