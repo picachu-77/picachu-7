@@ -232,7 +232,7 @@ var MODES=[
   {key:'samewide', lb:'🎺 수준별(넓게)', ds:'인접 등급도 섞이게'},
   {key:'cycle',    lb:'🔁 순환',         ds:'랜덤→밸런스→수준별 반복'}
 ]
-// 순환: 6세트 주기 (랜덤,밸런스,수준별좁게 / 랜덤,밸런스,수준별넓게)
+// 순환: 3세트 1주기 (랜덤,밸런스,수준별) — 수준별만 주기마다 좁게↔넓게 번갈아
 var CYCLE_MODES=['random','balanced','sameclose','random','balanced','samewide'];
 var CYCLE_LABELS=['🎲 랜덤','🤝 밸런스 매치','🎯 수준별(좁게)','🎲 랜덤','🤝 밸런스 매치','🎺 수준별(넓게)'];
 function getCycleMode(idx){return CYCLE_MODES[idx%6];}
@@ -1508,7 +1508,7 @@ function mStep1Html(){
         +'<b style="color:var(--white)">🎯 수준별(좁게)</b> — 딱 비슷한 등급끼리<br>'
         +'<b style="color:var(--white)">🎺 수준별(넓게)</b> — 인접 등급도 섞여 멤버 다양<br>'
         +'<b style="color:var(--white)">🔥 빡겜 매치</b> — 잘 치는 사람끼리 (밸런스 팀)<br>'
-        +'<b style="color:var(--white)">🔁 순환</b> — 6세트 주기로 자동 변경 (수준별 좁게↔넓게)'
+        +'<b style="color:var(--white)">🔁 순환</b> — 3세트 주기로 자동 변경 (수준별은 좁게↔넓게 번갈아)'
       +'</div>'
       :'')
     +courtSummary;
@@ -1634,8 +1634,8 @@ function mStep2Html(){
   var dupNtc=S.dup?ntc('var(--red)','⚠️','파트너가 이전 라운드와 겹쳤어요','모든 조합을 이미 사용해서 불가피해요'):'';
   var cycleNtc='';
   if(S.pairMode==='cycle'){
-    cycleNtc=ntc('#c8f135','🔁','순환 모드 (6세트 주기)',
-      '1~3세트: 랜덤 → 밸런스 → 수준별(좁게) / 4~6세트: 랜덤 → 밸런스 → 수준별(넓게) → 반복');
+    cycleNtc=ntc('#c8f135','🔁','순환 모드 (3세트 주기)',
+      '랜덤 → 밸런스 → 수준별 반복 (수준별은 좁게↔넓게 번갈아)');
   }
 
   // ── 경기 카드 — 세트별, 코트 가로 배치 ──
