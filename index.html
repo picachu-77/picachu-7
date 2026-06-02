@@ -96,8 +96,8 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .err-txt{font-size:11px;color:var(--red);margin-top:3px}
 
 /* ── 등급 토글 ── */
-.lv-group{display:flex;gap:4px}
-.lv-btn{flex:1;padding:8px 0;border-radius:8px;font-weight:800;font-size:14px;min-height:40px;transition:all .15s;border:1px solid transparent;letter-spacing:1px}
+.lv-group{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
+.lv-btn{padding:7px 0;border-radius:7px;font-weight:800;font-size:12px;min-height:34px;transition:all .15s;border:1px solid transparent;letter-spacing:1px}
 .g-group{display:flex;gap:5px}
 .g-btn{flex:1;padding:9px 0;border-radius:9px;font-weight:700;font-size:13px;min-height:42px;transition:all .15s;border:1px solid transparent}
 
@@ -196,29 +196,47 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 // ══════════════════════════════════════════════════════════════════
 // 상수
 // ══════════════════════════════════════════════════════════════════
-var LV=[{key:'E',sc:0,color:'#90a4ae'},{key:'D',sc:1,color:'#4fc3f7'},
-        {key:'C',sc:2,color:'#66bb6a'},{key:'B',sc:3,color:'#f1d035'},
-        {key:'A',sc:4,color:'#f18835'},{key:'S',sc:5,color:'#f15555'}];
+var LV=[
+  {key:'E-',sc:0,color:'#90a4ae'},{key:'E',sc:1,color:'#90a4ae'},{key:'E+',sc:2,color:'#90a4ae'},
+  {key:'D-',sc:3,color:'#4fc3f7'},{key:'D',sc:4,color:'#4fc3f7'},{key:'D+',sc:5,color:'#4fc3f7'},
+  {key:'C-',sc:6,color:'#66bb6a'},{key:'C',sc:7,color:'#66bb6a'},{key:'C+',sc:8,color:'#66bb6a'},
+  {key:'B-',sc:9,color:'#f1d035'},{key:'B',sc:10,color:'#f1d035'},{key:'B+',sc:11,color:'#f1d035'},
+  {key:'A-',sc:12,color:'#f18835'},{key:'A',sc:13,color:'#f18835'},{key:'A+',sc:14,color:'#f18835'},
+  {key:'S-',sc:15,color:'#f15555'},{key:'S',sc:16,color:'#f15555'},{key:'S+',sc:17,color:'#f15555'}
+];
 var LV_INFO={
-  E:{short:'아직 시작 단계',desc:'배드민턴을 처음 접하는 수준이에요.',details:['서브를 코트 안에 넣기 어려울 수 있어요','기본기(그립·자세)를 배우는 중','랠리를 3회 이상 이어가기 힘든 수준']},
-  D:{short:'기본기 익히는 중',desc:'기초 동작을 배우고 있는 단계예요.',details:['서브를 안정적으로 넣을 수 있음','짧은 랠리(5~10회) 가능','클리어·드롭 등 기본 샷을 시도할 수 있음','풋워크·포지션 개념을 익히는 중']},
-  C:{short:'어느 정도 칠 수 있음',desc:'동호회 입문 수준이에요.',details:['클리어·드롭·스매시를 기본적으로 구사','랠리를 어느 정도 이어갈 수 있음','경기 규칙을 알고 게임 진행 가능','코트 전체를 커버하기엔 아직 부족']},
-  B:{short:'동호회 중간 수준',desc:'동호회 평균 수준이에요.',details:['안정적인 랠리와 다양한 샷 구사 가능','코트를 넓게 활용하는 플레이','스매시·헤어핀·푸시 등을 적절히 사용','복식 전술(앞뒤·좌우)을 이해하고 있음']},
-  A:{short:'잘 치는 편',desc:'동호회 상위 수준이에요.',details:['강하고 정확한 스매시·드롭 구사','리시브가 안정적이고 수비 범위 넓음','전술적 판단으로 상대를 흔드는 플레이','체력·순발력을 바탕으로 한 압박 가능']},
-  S:{short:'에이스 수준',desc:'클럽 최상위 수준이에요.',details:['압도적인 기술·체력·전술을 모두 갖춤','공식 동호인 대회 입상 경험 수준','거의 모든 샷을 자유자재로 구사','파트너를 리드하며 경기를 지배하는 수준']}
+  'E-':{short:'완전 입문',desc:'배드민턴을 시작한 지 얼마 안 됐어요.',details:['처음으로 라켓을 잡아보는 단계','기본 그립·자세를 배우는 중']},
+  'E':{short:'아직 시작 단계',desc:'배드민턴을 처음 접하는 수준이에요.',details:['서브를 코트 안에 넣기 어려울 수 있어요','기본기(그립·자세)를 배우는 중','랠리를 3회 이상 이어가기 힘든 수준']},
+  'E+':{short:'시작 단계 후반',desc:'기본기 시작 후반부예요.',details:['짧은 랠리는 가끔 이어짐','서브 성공률이 점점 올라가는 중']},
+  'D-':{short:'기본기 시작',desc:'기초 동작 초기예요.',details:['서브를 코트 안에 넣을 수 있음','짧은 랠리 시도 가능']},
+  'D':{short:'기본기 익히는 중',desc:'기초 동작을 배우고 있는 단계예요.',details:['서브를 안정적으로 넣을 수 있음','짧은 랠리(5~10회) 가능','클리어·드롭 등 기본 샷을 시도할 수 있음','풋워크·포지션 개념을 익히는 중']},
+  'D+':{short:'기본기 후반',desc:'기본기가 자리 잡혀가요.',details:['랠리가 안정적으로 이어짐','다양한 샷 시도 가능']},
+  'C-':{short:'입문 초반',desc:'동호회 입문 초기예요.',details:['게임 규칙을 알고 진행 가능','기본 샷 구사']},
+  'C':{short:'어느 정도 칠 수 있음',desc:'동호회 입문 수준이에요.',details:['클리어·드롭·스매시를 기본적으로 구사','랠리를 어느 정도 이어갈 수 있음','경기 규칙을 알고 게임 진행 가능','코트 전체를 커버하기엔 아직 부족']},
+  'C+':{short:'입문 후반',desc:'입문에서 중급으로 가는 단계예요.',details:['샷의 정확도가 올라감','복식 포지션을 이해하기 시작']},
+  'B-':{short:'중급 초반',desc:'동호회 중급 초기예요.',details:['안정적인 플레이','전술적 판단 시작']},
+  'B':{short:'동호회 중간 수준',desc:'동호회 평균 수준이에요.',details:['안정적인 랠리와 다양한 샷 구사 가능','코트를 넓게 활용하는 플레이','스매시·헤어핀·푸시 등을 적절히 사용','복식 전술(앞뒤·좌우)을 이해하고 있음']},
+  'B+':{short:'중급 후반',desc:'중급에서 상급으로 가는 단계예요.',details:['고급 샷 시도 가능','전술 응용력 향상']},
+  'A-':{short:'상급 초반',desc:'동호회 상급 초기예요.',details:['파워와 정확도 균형','코트 커버 범위 넓음']},
+  'A':{short:'잘 치는 편',desc:'동호회 상위 수준이에요.',details:['강하고 정확한 스매시·드롭 구사','리시브가 안정적이고 수비 범위 넓음','전술적 판단으로 상대를 흔드는 플레이','체력·순발력을 바탕으로 한 압박 가능']},
+  'A+':{short:'상급 후반',desc:'에이스급으로 가는 단계예요.',details:['거의 모든 샷 자유자재','경기 흐름 주도']},
+  'S-':{short:'최상위 초반',desc:'클럽 최상위 진입 단계예요.',details:['대회 입상권 실력','파트너를 리드하는 플레이']},
+  'S':{short:'에이스 수준',desc:'클럽 최상위 수준이에요.',details:['압도적인 기술·체력·전술을 모두 갖춤','공식 동호인 대회 입상 경험 수준','거의 모든 샷을 자유자재로 구사','파트너를 리드하며 경기를 지배하는 수준']},
+  'S+':{short:'최정상',desc:'최정상급이에요.',details:['전국 대회 수준','거의 모든 면에서 완성형']}
 };
 var TC=['#c8f135','#f1d035','#35f1c8','#f13588','#3588f1','#f18835','#a835f1','#35f158'];
 var MODES=[
-  {key:'random',   lb:'🎲 완전 랜덤', ds:'그냥 섞기'},
-  {key:'balanced', lb:'🤝 균형',      ds:'고수↔초보 페어링'},
-  {key:'sameclose',lb:'🎯 동급 대결', ds:'비슷한 수준 4명끼리 한 경기'},
-  {key:'cycle',    lb:'🔁 순환',      ds:'랜덤→균형→동급 반복'}
-];
+  {key:'random',   lb:'🎲 랜덤',         ds:'그냥 섞기'},
+  {key:'balanced', lb:'🤝 밸런스 매치',  ds:'양 팀 실력 비슷하게'},
+  {key:'sameclose',lb:'🎯 수준별',       ds:'비슷한 수준끼리'},
+  {key:'cycle',    lb:'🔁 순환',         ds:'랜덤→밸런스→수준별 반복'}
+]
 var CYCLE_MODES=['random','balanced','sameclose'];
-var CYCLE_LABELS=['🎲 완전 랜덤','🤝 균형','🎯 동급 대결'];
+var CYCLE_LABELS=['🎲 랜덤','🤝 밸런스 매치','🎯 수준별'];
+function getCycleMode(idx){return CYCLE_MODES[idx%3];}
+function getCycleLabel(idx){return CYCLE_LABELS[idx%3];};
+// (cycle 모드 제거됨 - 4가지 모드로 단순화)
 var COURT_COLORS=['#4fc3f7','#f48fb1','#66bb6a','#f1d035','#f18835','#a278f1'];
-function getCycleMode(roundIdx){return CYCLE_MODES[roundIdx%3];}
-function getCycleLabel(roundIdx){return CYCLE_LABELS[roundIdx%3];}
 
 // ══════════════════════════════════════════════════════════════════
 // 상태
@@ -464,18 +482,32 @@ function toast(msg){var el=document.getElementById('toast');el.textContent=msg;e
 // ══════════════════════════════════════════════════════════════════
 function bRandom(ps,h){for(var t=0;t<60;t++){var ts=pairUp(shuf(ps));if(!hasDup(ts,h))return{teams:ts,dup:false};}return{teams:pairUp(shuf(ps)),dup:true};}
 function bBal(ps,h){
-  // 최대 60번 재시도해서 중복 파트너 최소화
-  for(var t=0;t<60;t++){
-    var s=ps.slice().sort(function(a,b){return lsc(b)-lsc(a);});
-    var n=Math.floor(s.length/2),top=shuf(s.slice(0,n)),bot=shuf(s.slice(n)),teams=[],i;
-    for(i=0;i<top.length;i++)teams.push({id:i,p1:top[i],p2:bot[i]});
-    if(!hasDup(teams,h)) return{teams:teams,dup:false};
-  }
-  // 60번 시도 후도 겹치면 그냥 반환
+  // 4명씩 묶어서 두 팀의 실력 합이 최대한 비슷하게 분할
   var s=ps.slice().sort(function(a,b){return lsc(b)-lsc(a);});
-  var n=Math.floor(s.length/2),top=shuf(s.slice(0,n)),bot=shuf(s.slice(n)),teams=[],i;
-  for(i=0;i<top.length;i++)teams.push({id:i,p1:top[i],p2:bot[i]});
-  return{teams:teams,dup:true};
+  var teams=[],id=0,i;
+  for(i=0;i+3<s.length;i+=4){
+    var g=s.slice(i,i+4); // 등급 높은 순 4명
+    // 3가지 분할 중 두 팀 합 차이가 가장 작은 것
+    var opts=[[0,3,1,2],[0,1,2,3],[0,2,1,3]];
+    var best=opts[0],bestDiff=Infinity;
+    for(var o=0;o<opts.length;o++){
+      var c=opts[o];
+      var s1=lsc(g[c[0]])+lsc(g[c[1]]);
+      var s2=lsc(g[c[2]])+lsc(g[c[3]]);
+      var diff=Math.abs(s1-s2);
+      if(diff<bestDiff){bestDiff=diff;best=c;}
+    }
+    teams.push({id:id++,p1:g[best[0]],p2:g[best[1]]});
+    teams.push({id:id++,p1:g[best[2]],p2:g[best[3]]});
+  }
+  // 나머지 인원 (4의 배수가 아닐 때) — 고수+초보 페어
+  var left=s.slice(i);
+  if(left.length>=2){
+    var half=Math.floor(left.length/2);
+    var topL=left.slice(0,half),botL=left.slice(half);
+    for(var k=0;k<half;k++) teams.push({id:id++,p1:topL[k],p2:botL[k]});
+  }
+  return{teams:teams,dup:hasDup(teams,h)};
 }
 // 동급 대결: 급수 순 정렬 → 4명씩 묶어서 그 안에서 랜덤 페어
 // → 한 경기의 4명이 최대한 비슷한 수준
@@ -484,16 +516,10 @@ function bSameLevel(ps,h){
   var teams=[],id=0,i;
   for(i=0;i+3<s.length;i+=4){
     var g=s.slice(i,i+4);
-    // 3가지 페어링 중 중복 없는 걸 우선 선택 (랜덤 순서로 시도)
-    var opts=shuf([[0,1,2,3],[0,2,1,3],[0,3,1,2]]);
-    var chosen=opts[0];
-    for(var o=0;o<opts.length;o++){
-      var c=opts[o];
-      var ta={id:id,p1:g[c[0]],p2:g[c[1]]},tb={id:id+1,p1:g[c[2]],p2:g[c[3]]};
-      if(!hasDup([ta,tb],h)){chosen=c;break;}
-    }
-    teams.push({id:id++,p1:g[chosen[0]],p2:g[chosen[1]]});
-    teams.push({id:id++,p1:g[chosen[2]],p2:g[chosen[3]]});
+    // 동급 대결은 인접 페어링만 사용 (비슷한 등급끼리 묶기)
+    // g[0]·g[1] (낮은 둘) vs g[2]·g[3] (높은 둘)
+    teams.push({id:id++,p1:g[0],p2:g[1]});
+    teams.push({id:id++,p1:g[2],p2:g[3]});
   }
   // 나머지 인원 처리 (4의 배수가 아닐 때)
   var left=s.slice(i);
@@ -505,10 +531,7 @@ function buildWithMode(ps,h,mode){
   if(mode==='sameclose') return bSameLevel(ps,h);
   return bRandom(ps,h);
 }
-function build(ps,h){
-  var mode=S.pairMode==='cycle'?getCycleMode(S.round-1):S.pairMode;
-  return buildWithMode(ps,h,mode);
-}
+function build(ps,h){return buildWithMode(ps,h,S.pairMode);}
 // 팀 평균 급수 계산
 function teamAvgLv(t){return lsc(t.p1)+lsc(t.p2);}
 // 두 팀 간 급수 차이
@@ -612,6 +635,26 @@ function mkRotationSchedule(){
     ];
   }
 
+  // 동급 대결 모드용: 비슷한 등급 4명 뽑기
+  function pickSameLevelGroup(pool,n){
+    if(pool.length<=n) return pool.slice();
+    var withCount=pool.map(function(p){return {p:p,c:playCount[p.name]||0};});
+    withCount.sort(function(a,b){return a.c-b.c;});
+    var minC=withCount[0].c;
+    var candidates=withCount.filter(function(x){return x.c<=minC+1;}).map(function(x){return x.p;});
+    if(candidates.length<n){
+      candidates=withCount.slice(0,Math.max(n,Math.min(n*2,withCount.length))).map(function(x){return x.p;});
+    }
+    candidates.sort(function(a,b){return lsc(a)-lsc(b);});
+    // 등급 차이가 최소인 연속 n명 윈도우 선택
+    var bestStart=0,bestRange=Infinity;
+    for(var i=0;i+n<=candidates.length;i++){
+      var r=lsc(candidates[i+n-1])-lsc(candidates[i]);
+      if(r<bestRange){bestRange=r;bestStart=i;}
+    }
+    return candidates.slice(bestStart,bestStart+n);
+  }
+
   // 우선순위: 출전 횟수(2 차이 이상) → 페어 다양성 → 출전 횟수(1 차이) → 랜덤
   // 연속 출전은 허용 (팀 조합 다양성 우선)
   function pickFewestPlayers(pool,n,curSet){
@@ -667,12 +710,17 @@ function mkRotationSchedule(){
       for(var ci=1;ci<=nc;ci++){
         var cps=courtPlayers[ci]||[];
         if(cps.length<4) continue;
-        // 출전 횟수 적은 4명 선택
-        var playing=pickFewestPlayers(cps,4,b);
+        // 선수 선택: 모드별로 다르게
+        var playing;
+        if(blockMode==='sameclose'){
+          playing=pickSameLevelGroup(cps,4);
+        } else {
+          playing=pickFewestPlayers(cps,4,b);
+        }
         var rc=buildWithMode(playing,tempH,blockMode);
         var bt=rc.teams.slice(0,2);
         // 랜덤/순환 모드면 페어링 최적화 (균형/동급은 의도 보존)
-        if(bt.length===2&&(blockMode==='random'||S.pairMode==='cycle')){
+        if(bt.length===2&&blockMode==='random'){
           var opt=optimizePairing(bt[0],bt[1]);
           if(opt){bt[0].p1=opt[0].p1;bt[0].p2=opt[0].p2;bt[1].p1=opt[1].p1;bt[1].p2=opt[1].p2;}
         }
@@ -703,11 +751,23 @@ function mkRotationSchedule(){
       // 출전 횟수 적은 순으로 needed명 선택 (인원이 부족하면 가능한 만큼)
       var actualNeeded=Math.min(needed,Math.floor(available.length/4)*4);
       if(actualNeeded<4) actualNeeded=4;
-      var playing=pickFewestPlayers(available,actualNeeded,b);
+      // 모드별 선수 선택
+      var playing;
+      if(blockMode==='sameclose'){
+        var withC=available.map(function(p){return {p:p,c:playCount[p.name]||0};});
+        withC.sort(function(a,b){var d=a.c-b.c; return d!==0?d:lsc(a.p)-lsc(b.p);});
+        var minC2=withC[0].c;
+        var cand=withC.filter(function(x){return x.c<=minC2+1;}).map(function(x){return x.p;});
+        if(cand.length<actualNeeded) cand=withC.slice(0,Math.max(actualNeeded,actualNeeded*2)).map(function(x){return x.p;});
+        cand.sort(function(a,b){return lsc(a)-lsc(b);});
+        playing=cand.slice(0,actualNeeded);
+      } else {
+        playing=pickFewestPlayers(available,actualNeeded,b);
+      }
       var r=buildWithMode(playing,tempH,blockMode);
       var blockTeams=r.teams.slice(0,nc*2);
       // 랜덤/순환 모드 + 2코트(=8명)면 최적 분할 적용
-      if((blockMode==='random'||S.pairMode==='cycle')&&nc===2&&blockTeams.length===4){
+      if(blockMode==='random'&&nc===2&&blockTeams.length===4){
         var eight=[];
         for(var pi=0;pi<blockTeams.length;pi++){
           eight.push(blockTeams[pi].p1);
@@ -720,7 +780,7 @@ function mkRotationSchedule(){
           blockTeams[2].p1=split.g2[0][0]; blockTeams[2].p2=split.g2[0][1];
           blockTeams[3].p1=split.g2[1][0]; blockTeams[3].p2=split.g2[1][1];
         }
-      } else if((blockMode==='random'||S.pairMode==='cycle')) {
+      } else if(blockMode==='random') {
         // 1코트 또는 3코트 이상: 각 게임 4명씩 최적화
         for(var pi=0;pi<blockTeams.length-1;pi+=2){
           var opt=optimizePairing(blockTeams[pi],blockTeams[pi+1]);
@@ -1385,10 +1445,11 @@ function mStep1Html(){
         +'<b style="color:var(--white)">5.</b> 늦참 도착 시 대진표에서 ✅ 도착! 클릭<br>'
         +'<br>'
         +'<b style="color:var(--lime)">🏸 팀 구성 방식</b><br>'
-        +'<b style="color:var(--white)">🎲 완전 랜덤</b> — 순수하게 무작위로 팀 구성<br>'
-        +'<b style="color:var(--white)">🤝 균형</b> — 고수↔초보가 같은 팀이 되도록 배정<br>'
-        +'<b style="color:var(--white)">🎯 동급 대결</b> — 비슷한 수준 4명끼리 묶어서 경기<br>'
-        +'<b style="color:var(--white)">🔁 순환</b> — 랜덤→균형→동급 대결을 세트마다 반복'
+        +'<b style="color:var(--white)">🎲 랜덤</b> — 그냥 무작위로 팀 구성<br>'
+        +'<b style="color:var(--white)">🤝 밸런스 매치</b> — 양 팀 실력 합 비슷하게<br>'
+        +'<b style="color:var(--white)">🎯 수준별</b> — 비슷한 등급끼리 매치<br>'
+        +'<b style="color:var(--white)">🔥 빡겜 매치</b> — 잘 치는 사람끼리 (밸런스 팀)<br>'
+        +'<b style="color:var(--white)">🔁 순환</b> — 세트마다 랜덤→밸런스→수준별 자동 반복'
       +'</div>'
       :'')
     +courtSummary;
@@ -1466,7 +1527,8 @@ function mStep2Html(){
   var modeBtns='';
   for(var i=0;i<MODES.length;i++){
     var mo=MODES[i],mac=S.pairMode===mo.key;
-    modeBtns+='<button class="mbtn '+(mac?'active':'')+'" data-a="sm" data-v="'+mo.key+'" style="min-height:48px;padding:8px 10px">'
+    var fullWidth=mo.key==='cycle'?'grid-column:1/-1;':'';
+    modeBtns+='<button class="mbtn '+(mac?'active':'')+'" data-a="sm" data-v="'+mo.key+'" style="min-height:48px;padding:8px 10px;'+fullWidth+'">'
       +'<div class="mbtn-lbl" style="font-size:12px">'+mo.lb+'</div>'
       +'<div class="mbtn-desc" style="font-size:10px">'+mo.ds+'</div>'
       +'</button>';
@@ -1513,8 +1575,8 @@ function mStep2Html(){
   var dupNtc=S.dup?ntc('var(--red)','⚠️','파트너가 이전 라운드와 겹쳤어요','모든 조합을 이미 사용해서 불가피해요'):'';
   var cycleNtc='';
   if(S.pairMode==='cycle'){
-    cycleNtc=ntc('#c8f135','🔁','순환 모드 — 라운드 '+S.round,
-      '이번: '+getCycleLabel(S.round-1)+' · 다음: '+getCycleLabel(S.round)+' · 그 다음: '+getCycleLabel(S.round+1));
+    cycleNtc=ntc('#c8f135','🔁','순환 모드',
+      '세트마다 자동으로 바뀌어요: 세트1 🎲 랜덤 → 세트2 🤝 밸런스 → 세트3 🎯 수준별 → 반복');
   }
 
   // ── 경기 카드 — 세트별, 코트 가로 배치 ──
