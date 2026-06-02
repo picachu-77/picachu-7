@@ -708,24 +708,26 @@ function mkRotationSchedule(){
     return [anchor].concat(rest.slice(0,n-1));
   }
 
-  // 우선순위: 출전 횟수 → 오래 쉰 사람(텀) → 함께 게임 적게 한 사람(다양성) → 페어 다양성 → 랜덤
+  // 우선순위: 출전 횟수 → 3판이상 쉰사람 강제(상한) → 다양성 → 오래 쉰 사람 → 랜덤
+  // 다양성 최우선, 단 아무도 3판 넘게 쉬지 않도록 상한 적용
   function pickFewestPlayers(pool,n,curSet){
     var picked=[];
     var remaining=pool.slice();
     while(picked.length<n&&remaining.length>0){
       remaining.sort(function(a,b){
         var ca=playCount[a.name]||0, cb=playCount[b.name]||0;
-        // 1순위: 출전 횟수
+        // 1순위: 출전 횟수 (공평성)
         if(ca!==cb) return ca-cb;
-        // 2순위: 오래 쉰 사람 (텀 방지)
+        // 2순위: 3판 이상 쉰 사람 강제 투입 (텀 절대 상한)
         var la=lastPlayedSet[a.name];if(la===undefined||la===null)la=-1;
         var lb=lastPlayedSet[b.name];if(lb===undefined||lb===null)lb=-1;
-        if(la!==lb) return la-lb;
-        // 3순위: 이미 뽑힌 그룹과 함께 게임한 횟수 (적은 사람 우선 = 새로운 멤버)
+        var gapA=(curSet||0)-1-la, gapB=(curSet||0)-1-lb;
+        var hardA=gapA>=3?0:1, hardB=gapB>=3?0:1;
+        if(hardA!==hardB) return hardA-hardB;
+        // 3순위: 다양성 (안 만난 사람 우선)
         if(picked.length>0){
           var ea=encScore(a,picked), eb=encScore(b,picked);
           if(ea!==eb) return ea-eb;
-          // 4순위: 파트너 페어 다양성
           var sa=0,sb=0;
           for(var pi=0;pi<picked.length;pi++){
             sa+=(pairCount[pairKey(a.name,picked[pi].name)]||0);
@@ -733,6 +735,8 @@ function mkRotationSchedule(){
           }
           if(sa!==sb) return sa-sb;
         }
+        // 4순위: 오래 쉰 사람 (텀 방지)
+        if(la!==lb) return la-lb;
         return Math.random()-0.5;
       });
       picked.push(remaining.shift());
