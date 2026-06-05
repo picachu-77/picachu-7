@@ -37,7 +37,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 #app{min-height:100vh;display:flex;justify-content:center;padding:0 0 80px;
   background-image:radial-gradient(ellipse at 15% 60%,rgba(200,241,53,.04) 0%,transparent 55%),
   radial-gradient(ellipse at 85% 15%,rgba(53,136,241,.03) 0%,transparent 50%)}
-.wrap{width:100%;max-width:480px}
+.wrap{width:100%;max-width:480px;transition:max-width .3s ease}
 
 /* ── 상단 헤더 ── */
 .app-header{padding:20px 20px 0;text-align:center;position:relative}
@@ -616,6 +616,42 @@ function mkRotationSchedule(){
     return {pairing:best,score:bestScore};
   }
 
+  // 여러 명을 4명씩 여러 게임으로 나누기 (코트 수 무관, 다양성 최대)
+  // greedy: 아직 안 만난 사람끼리 묶어서 각 게임의 만남 중복 최소화
+  function splitIntoGames(players, numGames){
+    var remaining=players.slice();
+    var games=[];
+    for(var g=0;g<numGames;g++){
+      if(remaining.length<4) break;
+      // 첫 사람: 남은 사람 중 임의(앞에서)
+      var group=[remaining.shift()];
+      // 나머지 3명: 이미 뽑힌 group과 만남 횟수가 가장 적은 사람부터
+      while(group.length<4&&remaining.length>0){
+        remaining.sort(function(a,b){
+          var sa=0,sb=0;
+          for(var i=0;i<group.length;i++){
+            sa+=(encounterCount[pairKey(a.name,group[i].name)]||0);
+            sb+=(encounterCount[pairKey(b.name,group[i].name)]||0);
+          }
+          if(sa!==sb) return sa-sb;
+          // 동점이면 파트너 중복 적은 사람
+          var pa=0,pb=0;
+          for(var i=0;i<group.length;i++){
+            pa+=(pairCount[pairKey(a.name,group[i].name)]||0);
+            pb+=(pairCount[pairKey(b.name,group[i].name)]||0);
+          }
+          if(pa!==pb) return pa-pb;
+          return Math.random()-0.5;
+        });
+        group.push(remaining.shift());
+      }
+      // 4명 안에서 최적 페어링 (파트너 중복 최소)
+      var bp=findBestPairing(group);
+      games.push(bp?bp.pairing:[[group[0],group[1]],[group[2],group[3]]]);
+    }
+    return games;
+  }
+
   // 4명이 서로 만난 총 횟수 (게임 내 다양성)
   function groupEncScore(four){
     var s=0;
@@ -625,7 +661,7 @@ function mkRotationSchedule(){
     return s;
   }
 
-  // 8명을 2게임(4명+4명)으로 나누는 최적 분할 + 페어링
+  // 8명을 2게임(4명+4명)으로 나누는 최적 분할 + 페어링 (완전탐색)
   function splitInto2Games(eight){
     if(!eight||eight.length<8) return null;
     var bestSplit=null,bestScore=Infinity;
@@ -640,7 +676,6 @@ function mkRotationSchedule(){
           var p1=findBestPairing(g1);
           var p2=findBestPairing(g2);
           if(!p1||!p2) continue;
-          // 점수 = 파트너 중복 + 게임 내 만남 중복(가중치 높임)
           var encS=groupEncScore(g1)+groupEncScore(g2);
           var s=(p1.score+p2.score)+encS*3;
           if(s<bestScore){bestScore=s;bestSplit={g1:p1.pairing,g2:p2.pairing};}
@@ -823,8 +858,9 @@ function mkRotationSchedule(){
       }
       var r=buildWithMode(playing,tempH,blockMode);
       var blockTeams=r.teams.slice(0,nc*2);
-      // 랜덤/순환 모드 + 2코트(=8명)면 최적 분할 적용
+      // 랜덤/순환 모드: 다양성 최대화 분할
       if(blockMode==='random'&&nc===2&&blockTeams.length===4){
+        // 2코트(8명): 완전탐색으로 최적 분할
         var eight=[];
         for(var pi=0;pi<blockTeams.length;pi++){
           eight.push(blockTeams[pi].p1);
@@ -837,8 +873,18 @@ function mkRotationSchedule(){
           blockTeams[2].p1=split.g2[0][0]; blockTeams[2].p2=split.g2[0][1];
           blockTeams[3].p1=split.g2[1][0]; blockTeams[3].p2=split.g2[1][1];
         }
+      } else if(blockMode==='random'&&nc>=3&&blockTeams.length>=6){
+        // 3코트 이상: 모든 출전자를 다양성 기준으로 게임별 재분할
+        var allP=[];
+        for(var pi=0;pi<blockTeams.length;pi++){allP.push(blockTeams[pi].p1);allP.push(blockTeams[pi].p2);}
+        var games=splitIntoGames(allP,nc);
+        var ti=0;
+        for(var gi=0;gi<games.length;gi++){
+          blockTeams[ti].p1=games[gi][0][0]; blockTeams[ti].p2=games[gi][0][1]; ti++;
+          blockTeams[ti].p1=games[gi][1][0]; blockTeams[ti].p2=games[gi][1][1]; ti++;
+        }
       } else if(blockMode==='random') {
-        // 1코트 또는 3코트 이상: 각 게임 4명씩 최적화
+        // 1코트: 4명 페어링만 최적화
         for(var pi=0;pi<blockTeams.length-1;pi+=2){
           var opt=optimizePairing(blockTeams[pi],blockTeams[pi+1]);
           if(opt){
@@ -986,7 +1032,19 @@ function generateResultImage(){
 
   // 세트 수에 따라 컬럼 수 자동 결정
   var totalSets=blockOrder.length;
-  var imgCols=totalSets>20?3:(totalSets>10?2:1);
+  // 최대 코트 수 파악
+  var maxCourts=1;
+  for(var si=0;si<blockOrder.length;si++){
+    var nCt=Object.keys(setsMap[blockOrder[si]]).length;
+    if(nCt>maxCourts) maxCourts=nCt;
+  }
+  // 코트가 많으면 이미지 컬럼을 줄여서 각 코트가 넓게 보이도록
+  var imgCols;
+  if(maxCourts>=3){
+    imgCols=1; // 3코트 이상이면 세트를 1열로 (각 세트 안에서 코트 가로 배치)
+  } else {
+    imgCols=totalSets>20?3:(totalSets>10?2:1);
+  }
 
   // 세트별 높이 미리 계산
   var setLabelH=24,cardH=42,cardGap=4,setGap=12;
@@ -999,8 +1057,13 @@ function generateResultImage(){
     setHeights.push(setLabelH+maxCards*(cardH+cardGap)+setGap);
   }
 
-  // 캔버스 너비/높이
-  var W=imgCols===1?700:(imgCols===2?900:1100);
+  // 캔버스 너비/높이 (코트 많으면 넓게)
+  var W;
+  if(maxCourts>=3){
+    W=Math.max(700,maxCourts*230); // 코트당 약 230px 확보
+  } else {
+    W=imgCols===1?700:(imgCols===2?900:1100);
+  }
   var padX=20,headerH=90;
   var colGap=12;
   var colW=(W-padX*2-colGap*(imgCols-1))/imgCols;
@@ -1669,7 +1732,7 @@ function mStep2Html(){
       +'<span class="set-divider-label">세트 '+bn+sbLabel+dupLabel+mLabel+'</span>'
       +'<div class="set-divider-line"></div></div>';
 
-    // 코트 가로 배치
+    // 코트 가로 배치 (화면 너비가 코트 수에 맞춰 넓어지므로 grid로 균등 배치)
     mCards+='<div style="display:grid;grid-template-columns:repeat('+ncols+',1fr);gap:8px;margin-bottom:4px">';
     for(var ci=0;ci<courtIds.length;ci++){
       var cid=parseInt(courtIds[ci]);
@@ -1887,8 +1950,16 @@ function render(){
     bodyHtml=stepBar()+'<div class="card">'+stepContent+'</div>';
   }
 
+  // 매치 2단계에서 코트가 많으면 화면 너비 넓히기
+  var wrapWidth=480;
+  if(S.tab==='match'&&S.mStep===2){
+    var courtCount=parseInt(S.numCourts)||1;
+    if(courtCount>=4) wrapWidth=860;
+    else if(courtCount===3) wrapWidth=680;
+  }
+
   document.getElementById('app').innerHTML=
-    '<div class="wrap">'
+    '<div class="wrap" style="max-width:'+wrapWidth+'px">'
     +'<div class="app-header">'
       +'<div style="font-size:32px;line-height:1.2">⚡🏸⚡</div>'
       +'<div class="app-title">피카츄의 배드민턴매치</div>'
