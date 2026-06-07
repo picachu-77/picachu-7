@@ -3,28 +3,32 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<meta name="theme-color" content="#0d3b2e">
+<meta name="theme-color" content="#f4f6f3">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="피카츄의 배드민턴매치">
 <title>⚡ 피카츄의 배드민턴매치</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 body {
-  --bg:#0d3b2e; --white:#f5f5f0; --muted:rgba(255,255,255,.38);
-  --card:rgba(255,255,255,.06); --border:rgba(255,255,255,.11);
-  --warn:#f1a035; --red:#f15555; --lime:#c8f135;
-  --input-bg:rgba(255,255,255,.09); --fbox-bg:rgba(255,255,255,.05);
-  --chip-bg:rgba(255,255,255,.07); --mode-bg:rgba(255,255,255,.06);
-  --shadow:0 2px 12px rgba(0,0,0,.3); --tab-active:rgba(200,241,53,.15);
+  --bg:#0e1f18; --bg2:#0a1813; --white:#eef2ee; --muted:rgba(238,242,238,.45);
+  --card:rgba(255,255,255,.05); --border:rgba(255,255,255,.1);
+  --warn:#f1a035; --red:#f15555; --lime:#7ee08a; --lime-soft:rgba(126,224,138,.14);
+  --input-bg:rgba(255,255,255,.07); --fbox-bg:rgba(255,255,255,.04);
+  --chip-bg:rgba(255,255,255,.06); --mode-bg:rgba(255,255,255,.05);
+  --shadow:0 2px 12px rgba(0,0,0,.35); --tab-active:rgba(126,224,138,.16);
+  --accent-ink:#0e1f18;
 }
 body.light {
-  --bg:#e8f5e9; --white:#1b2e1b; --muted:rgba(0,0,0,.45);
-  --card:rgba(255,255,255,.75); --border:rgba(0,0,0,.12);
-  --warn:#e67e00; --red:#d32f2f; --lime:#5a9e00;
-  --input-bg:rgba(255,255,255,.9); --fbox-bg:rgba(255,255,255,.6);
-  --chip-bg:rgba(255,255,255,.85); --mode-bg:rgba(255,255,255,.7);
-  --shadow:0 2px 12px rgba(0,0,0,.1); --tab-active:rgba(90,158,0,.15);
+  --bg:#f4f6f3; --bg2:#eaeee7; --white:#16241c; --muted:rgba(22,36,28,.5);
+  --card:#ffffff; --border:rgba(22,36,28,.1);
+  --warn:#e08600; --red:#e0443e; --lime:#1f8a4c; --lime-soft:#e3f3e9;
+  --input-bg:#ffffff; --fbox-bg:#f0f4ef;
+  --chip-bg:#eef2ec; --mode-bg:#ffffff;
+  --shadow:0 1px 2px rgba(22,36,28,.05),0 4px 16px rgba(22,36,28,.06); --tab-active:rgba(31,138,76,.1);
+  --accent-ink:#ffffff;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:var(--bg);font-family:'DM Sans','Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:var(--white);min-height:100vh;overscroll-behavior:none;transition:background .25s,color .25s}
@@ -35,14 +39,14 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 ::-webkit-scrollbar-thumb{background:rgba(128,128,128,.3);border-radius:4px}
 
 #app{min-height:100vh;display:flex;justify-content:center;padding:0 0 80px;
-  background-image:radial-gradient(ellipse at 15% 60%,rgba(200,241,53,.04) 0%,transparent 55%),
-  radial-gradient(ellipse at 85% 15%,rgba(53,136,241,.03) 0%,transparent 50%)}
+  background-image:radial-gradient(ellipse at 12% 0%,rgba(31,138,76,.06) 0%,transparent 45%),
+  radial-gradient(ellipse at 88% 8%,rgba(31,138,76,.04) 0%,transparent 42%)}
 .wrap{width:100%;max-width:480px;transition:max-width .3s ease}
 
 /* ── 상단 헤더 ── */
 .app-header{padding:20px 20px 0;text-align:center;position:relative}
-.app-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:var(--lime)}
-.app-sub{font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:16px}
+.app-title{font-family:'Archivo',sans-serif;font-weight:800;font-size:24px;letter-spacing:-.5px;color:var(--lime)}
+.app-sub{font-size:11px;color:var(--muted);letter-spacing:.5px;margin-bottom:16px}
 .theme-btn{position:absolute;top:20px;right:20px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:5px 11px;font-size:12px;color:var(--muted)}
 .share-btn{position:absolute;top:20px;left:20px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:5px 11px;font-size:12px;color:var(--muted)}
 
@@ -51,7 +55,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .tab{flex:1;padding:12px 0;text-align:center;font-weight:700;font-size:14px;
   color:var(--muted);background:transparent;border-bottom:2px solid transparent;
   transition:all .2s;margin-bottom:-1px}
-.tab.active{color:var(--lime);border-bottom-color:var(--lime)}
+.tab.active{color:var(--lime);border-bottom-color:var(--lime);font-weight:800}
 
 /* ── 콘텐츠 ── */
 .content{padding:16px 20px}
@@ -60,7 +64,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .sbar{display:flex;align-items:flex-start;justify-content:center;margin-bottom:20px}
 .sdot-wrap{display:flex;flex-direction:column;align-items:center;gap:3px}
 .sdot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;transition:all .3s}
-.sdot.done,.sdot.active{background:var(--lime);border:2px solid var(--lime);color:#0d3b2e}
+.sdot.done,.sdot.active{background:var(--lime);border:2px solid var(--lime);color:var(--accent-ink)}
 .sdot.idle{background:transparent;border:2px solid var(--border);color:var(--muted)}
 .slabel{font-size:9px}
 .slabel.active{color:var(--lime);font-weight:700}
@@ -70,8 +74,8 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .sline.idle{background:var(--border)}
 
 /* ── 카드 ── */
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:var(--shadow);margin-bottom:12px}
-.ttl{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;margin-bottom:3px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;box-shadow:var(--shadow);margin-bottom:14px}
+.ttl{font-family:'Archivo',sans-serif;font-weight:800;font-size:23px;letter-spacing:-.5px;margin-bottom:3px;color:var(--white)}
 .sub{color:var(--muted);font-size:13px;margin-bottom:14px}
 .lbl{font-size:12px;color:var(--muted);margin-bottom:5px}
 
@@ -80,9 +84,10 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .tag{display:inline-block;padding:2px 8px;border-radius:16px;font-size:11px;font-weight:700}
 
 /* ── 버튼 ── */
-.btn{padding:12px 16px;border-radius:11px;font-weight:700;font-size:14px;min-height:46px;
+.btn{padding:13px 18px;border-radius:13px;font-weight:700;font-size:14px;min-height:48px;
   transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:5px}
-.btn.pri{background:var(--lime);color:#0d3b2e}
+.btn.pri{background:var(--lime);color:var(--accent-ink);box-shadow:0 2px 8px rgba(31,138,76,.25)}
+.btn.pri:active{transform:translateY(1px)}
 .btn.gho{background:var(--card);border:1px solid var(--border);color:var(--white)}
 .btn.suc{background:rgba(100,200,100,.18);border:1px solid rgba(100,200,100,.35);color:#66cc66}
 .btn.dan{background:rgba(241,85,85,.12);border:1px solid rgba(241,85,85,.3);color:var(--red)}
@@ -90,8 +95,8 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .brow{display:flex;gap:8px}
 
 /* ── 입력 ── */
-.inp{width:100%;padding:11px 13px;border-radius:10px;background:var(--input-bg);border:1px solid var(--border);color:var(--white);font-size:15px;outline:none;transition:border .15s}
-.inp:focus{border-color:var(--lime)}
+.inp{width:100%;padding:12px 14px;border-radius:12px;background:var(--input-bg);border:1px solid var(--border);color:var(--white);font-size:15px;outline:none;transition:border .15s,box-shadow .15s}
+.inp:focus{border-color:var(--lime);box-shadow:0 0 0 3px var(--lime-soft)}
 .inp.err{border-color:var(--red)}
 .err-txt{font-size:11px;color:var(--red);margin-top:3px}
 
@@ -105,7 +110,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .roster-item{display:flex;align-items:center;gap:8px;padding:11px 13px;border-radius:12px;
   background:var(--card);border:1px solid var(--border);margin-bottom:7px;transition:background .15s}
 .roster-item.editing{background:var(--fbox-bg);border-color:var(--lime)}
-.roster-num{width:22px;height:22px;border-radius:50%;background:var(--lime);color:#0d3b2e;
+.roster-num{width:22px;height:22px;border-radius:50%;background:var(--lime);color:var(--accent-ink);
   display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
 .roster-info{flex:1;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .roster-name{font-weight:700;font-size:14px}
@@ -120,13 +125,13 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .attend-item.standby-mark{border-color:var(--warn);background:rgba(241,160,53,.08)}
 .chk-box{width:22px;height:22px;border-radius:6px;border:2px solid var(--border);
   display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;font-size:13px}
-.chk-box.on{background:var(--lime);border-color:var(--lime);color:#0d3b2e}
+.chk-box.on{background:var(--lime);border-color:var(--lime);color:var(--accent-ink)}
 .attend-info{flex:1}
 .attend-name{font-weight:700;font-size:14px;margin-bottom:2px}
 .attend-badges{display:flex;gap:4px;flex-wrap:wrap}
 .select-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .select-count{font-size:13px;color:var(--muted)}
-.select-all-btn{font-size:12px;font-weight:700;color:var(--lime);background:transparent;padding:4px 8px;border-radius:8px;border:1px solid rgba(200,241,53,.3)}
+.select-all-btn{font-size:12px;font-weight:700;color:var(--lime);background:transparent;padding:4px 8px;border-radius:8px;border:1px solid var(--border)}
 
 /* ── 팀 구성 ── */
 .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
@@ -136,10 +141,10 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .mbtn-lbl{font-weight:700;font-size:12px;margin-bottom:2px}
 .mbtn-desc{font-size:10px;opacity:.7}
 .tcard{padding:11px 14px;border-radius:12px;background:var(--card);border:1px solid var(--border);margin-bottom:7px}
-.tdot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#0d3b2e;font-weight:700;font-size:11px;flex-shrink:0}
+.tdot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--accent-ink);font-weight:700;font-size:11px;flex-shrink:0}
 .lgroup{display:flex;gap:6px;margin-bottom:12px}
 .lbtn{flex:1;padding:11px 0;border-radius:10px;font-weight:700;font-size:16px;min-height:46px;transition:all .15s;border:1px solid transparent}
-.lbtn.active{background:var(--lime);color:#0d3b2e}
+.lbtn.active{background:var(--lime);color:var(--accent-ink)}
 .lbtn.idle{background:var(--card);border:1px solid var(--border);color:var(--muted)}
 
 /* ── 대진표 ── */
@@ -152,7 +157,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .mcenter{text-align:center;min-width:48px;flex-shrink:0}
 .set-divider{display:flex;align-items:center;gap:8px;margin:18px 0 10px}
 .set-divider-line{flex:1;height:1px;background:var(--border)}
-.set-divider-label{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;color:var(--lime);white-space:nowrap;background:var(--bg);padding:0 4px}
+.set-divider-label{font-family:'Archivo',sans-serif;font-weight:800;font-size:13px;letter-spacing:0;color:var(--lime);white-space:nowrap;background:var(--bg);padding:0 6px}
 
 /* ── 알림/토스트 ── */
 .notice{display:flex;align-items:flex-start;gap:9px;padding:10px 13px;border-radius:11px;margin-bottom:10px}
@@ -247,7 +252,7 @@ var _composing=false; // 한글 조합 중 여부 (IME)
 var S={
   // 앱 전역
   tab:'match',   // 'roster' | 'match'
-  theme:'dark',
+  theme:'light',
   // 전체 명단 (영구저장)
   roster:[],
   // 명단 관리 UI
@@ -383,14 +388,14 @@ function showRestoreDialog(d){
   dlg.id='restore-dialog';
   dlg.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
   dlg.innerHTML=
-    '<div style="background:#1a3d2e;border:1px solid rgba(200,241,53,.3);border-radius:20px;padding:24px;max-width:340px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.5);">'
-      +'<div style="font-size:28px;text-align:center;margin-bottom:8px">🏸</div>'
-      +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:22px;letter-spacing:2px;color:#c8f135;text-align:center;margin-bottom:6px">이전 대진표 발견!</div>'
-      +'<div style="font-size:13px;color:rgba(255,255,255,.6);text-align:center;margin-bottom:20px">라운드 '+roundNum+' · 팀 '+teamCount+'개 · '+matchCount+'게임</div>'
-      +'<div style="font-size:14px;color:rgba(255,255,255,.85);text-align:center;margin-bottom:20px">이전 대진표를 이어서 사용할까요?</div>'
+    '<div style="background:var(--card);border:1px solid var(--border);border-radius:22px;padding:26px;max-width:340px;width:100%;box-shadow:0 12px 40px rgba(22,36,28,.18);">'
+      +'<div style="font-size:32px;text-align:center;margin-bottom:8px">🏸</div>'
+      +'<div style="font-family:\'Archivo\',sans-serif;font-weight:800;font-size:21px;color:var(--lime);text-align:center;margin-bottom:6px">이전 대진표 발견!</div>'
+      +'<div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:20px">라운드 '+roundNum+' · 팀 '+teamCount+'개 · '+matchCount+'게임</div>'
+      +'<div style="font-size:14px;color:var(--white);text-align:center;margin-bottom:22px">이전 대진표를 이어서 사용할까요?</div>'
       +'<div style="display:flex;gap:10px;">'
-        +'<button id="restore-no" style="flex:1;padding:13px;border-radius:11px;font-weight:700;font-size:14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);cursor:pointer;">새로 시작</button>'
-        +'<button id="restore-yes" style="flex:1;padding:13px;border-radius:11px;font-weight:700;font-size:14px;background:#c8f135;color:#0d3b2e;cursor:pointer;">이어하기 ✓</button>'
+        +'<button id="restore-no" style="flex:1;padding:14px;border-radius:13px;font-weight:700;font-size:14px;background:var(--chip-bg);border:1px solid var(--border);color:var(--muted);cursor:pointer;">새로 시작</button>'
+        +'<button id="restore-yes" style="flex:1;padding:14px;border-radius:13px;font-weight:700;font-size:14px;background:var(--lime);color:var(--accent-ink);border:none;cursor:pointer;">이어하기 ✓</button>'
       +'</div>'
     +'</div>';
   document.body.appendChild(dlg);
@@ -608,10 +613,17 @@ function mkRotationSchedule(){
     var best=null,bestScore=Infinity;
     for(var i=0;i<options.length;i++){
       var o=options[i];
-      // 파트너 중복 (같은 팀이었던 횟수)
+      // 파트너 중복 (같은 팀이었던 횟수) — 같은 편 반복 방지 (가중치 크게)
       var partnerS=(pairCount[pairKey(o[0][0].name,o[0][1].name)]||0)+
                    (pairCount[pairKey(o[1][0].name,o[1][1].name)]||0);
-      if(partnerS<bestScore){bestScore=partnerS;best=o;}
+      // 상대 중복 (서로 상대편으로 만난 횟수) — 같은 상대 반복 방지
+      var oppS=(encounterCount[pairKey(o[0][0].name,o[1][0].name)]||0)+
+               (encounterCount[pairKey(o[0][0].name,o[1][1].name)]||0)+
+               (encounterCount[pairKey(o[0][1].name,o[1][0].name)]||0)+
+               (encounterCount[pairKey(o[0][1].name,o[1][1].name)]||0);
+      // 파트너 중복을 상대 중복보다 더 강하게 피함 (파트너 2배 가중)
+      var score=partnerS*2+oppS;
+      if(score<bestScore){bestScore=score;best=o;}
     }
     return {pairing:best,score:bestScore};
   }
@@ -677,7 +689,7 @@ function mkRotationSchedule(){
           var p2=findBestPairing(g2);
           if(!p1||!p2) continue;
           var encS=groupEncScore(g1)+groupEncScore(g2);
-          var s=(p1.score+p2.score)+encS*3;
+          var s=(p1.score+p2.score)+encS*4;
           if(s<bestScore){bestScore=s;bestSplit={g1:p1.pairing,g2:p2.pairing};}
         }
       }
@@ -746,14 +758,15 @@ function mkRotationSchedule(){
         var gapA=(curSet||0)-1-la, gapB=(curSet||0)-1-lb;
         var hardA=gapA>=3?0:1, hardB=gapB>=3?0:1;
         if(hardA!==hardB) return hardA-hardB;
-        // 3순위: 다양성 (안 만난 사람 우선)
+        // 3순위: 다양성 (안 만난 사람 우선) — 상대 만남 + 파트너 중복 합산
         if(picked.length>0){
-          var ea=encScore(a,picked), eb=encScore(b,picked);
-          if(ea!==eb) return ea-eb;
           var sa=0,sb=0;
           for(var pi=0;pi<picked.length;pi++){
-            sa+=(pairCount[pairKey(a.name,picked[pi].name)]||0);
-            sb+=(pairCount[pairKey(b.name,picked[pi].name)]||0);
+            // 상대로 만난 횟수(encounter) + 같은 편이었던 횟수(pair)*2 를 합산
+            sa+=(encounterCount[pairKey(a.name,picked[pi].name)]||0)
+               +(pairCount[pairKey(a.name,picked[pi].name)]||0)*2;
+            sb+=(encounterCount[pairKey(b.name,picked[pi].name)]||0)
+               +(pairCount[pairKey(b.name,picked[pi].name)]||0)*2;
           }
           if(sa!==sb) return sa-sb;
         }
@@ -778,7 +791,7 @@ function mkRotationSchedule(){
   hasMultiCourt=courtsWithPlayers>=2;
   var g1ps=courtPlayers[1]||[];
   var g2ps=courtPlayers[2]||[];
-  var hasGroups=S.groupMode!=='any'&&hasMultiCourt;
+  var hasGroups=false; // 코트 분리 제거 — 항상 전체 골고루
 
   // 게임 수 = 세트 수 (직접 사용)
   var numRot=S.numGames>0?S.numGames:4;
@@ -1371,7 +1384,7 @@ function rosterHtml(){
   for(var i=0;i<S.roster.length;i++)if(S.roster[i].name===trimName){dup=true;break;}
   var canAdd=trimName&&!dup;
   var guideBtn='<button data-a="rtgi" style="background:transparent;font-size:11px;color:var(--muted);padding:2px 6px;border-radius:6px;border:1px solid var(--border)">'+(S.rShowGrade?'▲ 접기':'📋 등급 안내')+'</button>';
-  var addStyle=canAdd?'background:var(--lime);color:#0d3b2e':'background:var(--card);border:1px solid var(--border);color:var(--muted)';
+  var addStyle=canAdd?'background:var(--lime);color:var(--accent-ink)':'background:var(--card);border:1px solid var(--border);color:var(--muted)';
 
   var out='';
   // 추가 폼
@@ -1444,7 +1457,7 @@ function rosterHtml(){
         var isRSel=!!S.rSelected[p.name];
         out+='<div class="roster-item'+(isRSel?' editing':'')+'" '+(inSel?'data-a="rtogitem" data-n="'+p.name+'"':'')+'>'
           +(inSel
-            ?'<div style="width:22px;height:22px;border-radius:6px;border:2px solid '+(isRSel?'var(--lime)':'var(--border)')+';background:'+(isRSel?'var(--lime)':'transparent')+';display:flex;align-items:center;justify-content:center;font-size:13px;color:#0d3b2e;flex-shrink:0">'+(isRSel?'✓':'')+'</div>'
+            ?'<div style="width:22px;height:22px;border-radius:6px;border:2px solid '+(isRSel?'var(--lime)':'var(--border)')+';background:'+(isRSel?'var(--lime)':'transparent')+';display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--accent-ink);flex-shrink:0">'+(isRSel?'✓':'')+'</div>'
             :'<div class="roster-num">'+(origIdx+1)+'</div>')
           +'<div class="roster-info">'+gbadge(p.gender)
             +(rq?p.name.replace(new RegExp('('+rq.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'$1'):('<span class="roster-name">'+p.name+'</span>'))
@@ -1485,45 +1498,18 @@ function mStep1Html(){
   var q=(S.attendSearch||'').trim().toLowerCase();
   var filtered=q?S.roster.filter(function(p){return p.name.toLowerCase().indexOf(q)!==-1;}):S.roster;
 
-  // 코트별 인원 집계
-  var courtCounts={};
-  for(var ci=1;ci<=nc;ci++) courtCounts[ci]=0;
+  // 늦참 인원 집계 (코트 배정 제거 — 전체 골고루)
   var lateCount=0;
   for(var k in S.selected){
     if(!S.selected[k]) continue;
-    if(S.lateArrivals[k]){lateCount++;continue;}
-    var c=S.playerGroups[k]||1;
-    courtCounts[c]=(courtCounts[c]||0)+1;
+    if(S.lateArrivals[k]) lateCount++;
   }
   var earlyCount=selCount-lateCount;
 
-  // ── 코트 수 선택 ──
-  var courtNumBtns='';
-  for(var ci=1;ci<=6;ci++){
-    var isAc=nc===ci;
-    courtNumBtns+='<button data-a="setnc" data-v="'+ci+'" style="flex:1;padding:8px 0;border-radius:8px;font-weight:700;font-size:13px;min-height:36px;border:1px solid '+(isAc?'var(--lime)':'var(--border)')+';background:'+(isAc?'var(--tab-active)':'transparent')+';color:'+(isAc?'var(--lime)':'var(--muted)')+'">'+ci+'</button>';
-  }
-
-  // ── 코트별 현황 요약 ──
+  // 코트 요약 제거됨 (모든 참석자 전체 혼합)
   var courtSummary='';
-  if(selCount>0){
-    courtSummary='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;align-items:center">';
-    // 실제 배정된 코트만 표시 (nc=0이어도 보임)
-    var shownCourts=Math.max(nc,1);
-    for(var ci=1;ci<=shownCourts;ci++){
-      var cc=COURT_COLORS[(ci-1)%COURT_COLORS.length];
-      courtSummary+='<span style="padding:3px 9px;border-radius:8px;background:'+cc+'22;border:1px solid '+cc+'44;color:'+cc+';font-weight:700;font-size:12px">'+ci+'코트 '+(courtCounts[ci]||0)+'명</span>';
-    }
-    if(lateCount>0) courtSummary+='<span style="padding:3px 9px;border-radius:8px;background:rgba(241,160,53,.18);border:1px solid rgba(241,160,53,.4);color:#f1a035;font-weight:700;font-size:12px">🕐 늦참 '+lateCount+'명</span>';
-    if(shownCourts>1){
-      courtSummary+='<div style="display:flex;gap:3px;margin-left:auto">';
-      for(var ci=1;ci<=shownCourts;ci++){
-        var cc=COURT_COLORS[(ci-1)%COURT_COLORS.length];
-        courtSummary+='<button data-a="courtall" data-v="'+ci+'" style="padding:2px 7px;border-radius:6px;font-size:10px;font-weight:700;border:1px solid '+cc+'44;background:'+cc+'18;color:'+cc+'">전원 '+ci+'코트</button>';
-      }
-      courtSummary+='</div>';
-    }
-    courtSummary+='</div>';
+  if(lateCount>0){
+    courtSummary='<div style="margin-bottom:10px"><span style="padding:4px 11px;border-radius:8px;background:rgba(241,160,53,.18);border:1px solid rgba(241,160,53,.4);color:#f1a035;font-weight:700;font-size:12px">🕐 늦참 '+lateCount+'명</span></div>';
   }
 
   var out='<div class="ttl">오늘 참석자</div>'
@@ -1536,9 +1522,9 @@ function mStep1Html(){
           +'<input id="inp-nc" class="inp" type="number" min="1" max="10" inputmode="numeric" placeholder="코트 수 입력" value="'+(S.numCourts>0?S.numCourts:'')+'" style="padding:10px;font-size:18px;font-weight:700;text-align:center">'
         +'</div>'
         // 게임 수
-        +'<div style="flex:2">'
+        +'<div style="flex:1">'
           +'<div class="lbl" style="margin-bottom:5px">🎮 게임 수</div>'
-          +'<input id="inp-ng" class="inp" type="number" min="1" inputmode="numeric" placeholder="게임(세트) 수 입력" value="'+(S.numGames>0?S.numGames:'')+'" style="padding:10px;font-size:18px;font-weight:700;text-align:center">'
+          +'<input id="inp-ng" class="inp" type="number" min="1" inputmode="numeric" placeholder="게임 수 입력" value="'+(S.numGames>0?S.numGames:'')+'" style="padding:10px;font-size:18px;font-weight:700;text-align:center">'
         +'</div>'
       +'</div>'
     +'</div>'
@@ -1557,10 +1543,10 @@ function mStep1Html(){
       +'</div>'
     +'</div>'
     +(S.showGuide
-      ?'<div style="background:var(--card);border:1px solid rgba(200,241,53,.3);border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:12px;color:var(--muted);line-height:1.9">'
+      ?'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:12px;color:var(--muted);line-height:1.9">'
         +'<b style="color:var(--lime)">📖 사용방법</b><br>'
         +'<b style="color:var(--white)">1.</b> 코트 수 / 게임 수 입력<br>'
-        +'<b style="color:var(--white)">2.</b> 코트 버튼 눌러 참석·배정 (늦참은 🕐)<br>'
+        +'<b style="color:var(--white)">2.</b> 참석자 눌러서 체크 (늦참은 늦참 버튼)<br>'
         +'<b style="color:var(--white)">3.</b> 대진표 생성 → 팀 구성 방식 선택<br>'
         +'<b style="color:var(--white)">4.</b> ▶ 진행 중 → ✓ 완료 순서로 클릭<br>'
         +'<b style="color:var(--white)">5.</b> 늦참 도착 시 대진표에서 ✅ 도착! 클릭<br>'
@@ -1584,36 +1570,23 @@ function mStep1Html(){
     for(var i=0;i<filtered.length;i++){
       var p=filtered[i],isSel=!!S.selected[p.name];
       var isLate=!!S.lateArrivals[p.name];
-      var pCourt=S.playerGroups[p.name]||1;
-      var pc=COURT_COLORS[(pCourt-1)%COURT_COLORS.length];
 
-      // 코트 버튼 (항상 표시, 클릭하면 참석+배정 동시)
-      var courtBtns='<div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;align-items:flex-end">';
-      var courtRow='<div style="display:flex;gap:2px">';
-      for(var ci=1;ci<=nc;ci++){
-        var cc=COURT_COLORS[(ci-1)%COURT_COLORS.length];
-        var isAc=isSel&&!isLate&&pCourt===ci;
-        var cnt=courtCounts[ci]||0;
-        courtRow+='<button data-a="courtSelect" data-n="'+p.name+'" data-v="'+ci+'" style="padding:3px 7px;border-radius:6px;font-size:10px;font-weight:800;min-height:26px;border:1px solid '+(isAc?cc:'var(--border)')+';background:'+(isAc?cc+'28':'transparent')+';color:'+(isAc?cc:'var(--muted)')+'">'+ci+'코트<span style="font-size:9px;opacity:.7">('+cnt+')</span></button>';
-      }
-      courtRow+='</div>';
-      var lateBtn=isSel?'<button data-a="togglelate" data-n="'+p.name+'" style="padding:1px 7px;border-radius:6px;font-size:10px;font-weight:700;min-height:20px;border:1px solid '+(isLate?'rgba(241,160,53,.5)':'var(--border)')+';background:'+(isLate?'rgba(241,160,53,.2)':'transparent')+';color:'+(isLate?'#f1a035':'var(--muted)')+'">'+(isLate?'🕐 늦참':'늦참')+'</button>':'';
-      courtBtns+=courtRow+lateBtn+'</div>';
+      // 늦참 버튼만 유지 (코트 배정 제거)
+      var lateBtn=isSel?'<button data-a="togglelate" data-n="'+p.name+'" style="padding:5px 11px;border-radius:8px;font-size:11px;font-weight:700;min-height:30px;flex-shrink:0;border:1px solid '+(isLate?'rgba(241,160,53,.5)':'var(--border)')+';background:'+(isLate?'rgba(241,160,53,.2)':'transparent')+';color:'+(isLate?'#f1a035':'var(--muted)')+'">'+(isLate?'🕐 늦참':'늦참')+'</button>':'';
 
-      var leftBorderColor=isSel?(isLate?'rgba(241,160,53,.5)':pc+'88'):'transparent';
-      out+='<div class="attend-item'+(isSel?' selected':'')+' " style="border-left:3px solid '+leftBorderColor+';padding-left:10px;'+(isLate?'border-color:rgba(241,160,53,.35);background:rgba(241,160,53,.06);':'')+'">'
+      var leftBorderColor=isSel?(isLate?'rgba(241,160,53,.5)':'var(--lime)'):'transparent';
+      out+='<div class="attend-item'+(isSel?' selected':'')+'" data-a="attendToggle" data-n="'+p.name+'" style="border-left:3px solid '+leftBorderColor+';padding-left:10px;'+(isLate?'border-color:rgba(241,160,53,.35);background:rgba(241,160,53,.06);':'')+'">'
         +'<div class="chk-box'+(isSel?' on':'')+'">'+( isSel?'✓':'')+'</div>'
         +'<div class="attend-info">'
           +'<div class="attend-name">'
             +(q?p.name.replace(new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'$1'):p.name)
-            +(isSel?'<span style="font-size:10px;font-weight:700;color:'+pc+';margin-left:5px">'+pCourt+'코트</span>':'')
             +(isLate?'<span style="font-size:10px;font-weight:700;color:#f1a035;margin-left:4px">🕐 늦참</span>':'')
           +'</div>'
           +'<div class="attend-badges">'+gbadge(p.gender)+lvbadge(p.level)
           +(S.round>1&&(S.restCount[p.name]||0)>0?'<span class="badge" style="background:rgba(241,160,53,.2);border:1px solid rgba(241,160,53,.4);color:#f1a035">⏳ '+(S.restCount[p.name])+'회 쉼</span>':'')
           +'</div>'
         +'</div>'
-        +courtBtns
+        +lateBtn
         +'</div>';
     }
   }
@@ -1679,25 +1652,13 @@ function mStep2Html(){
     +'</div>'
   +'</div>';
 
-  // ── 그룹 매치 방식 (참석자에 두 그룹이 있을 때만 표시) ──
-  var g1cnt=0,g2cnt=0;
-  for(var k in S.selected){if(S.selected[k]){if((S.playerGroups[k]||1)===1)g1cnt++;else g2cnt++;}}
-  var showGroupMode=g1cnt>=2&&g2cnt>=2;
+  // 코트 매치 방식 선택 제거 — 항상 전체 혼합(골고루)
   var groupModeHtml='';
-  if(showGroupMode){
-    var gn1=S.groupNames[0],gn2=S.groupNames[1];
-    var isIntra=S.groupMode!=='any';
-    groupModeHtml='<div class="lbl" style="margin-bottom:5px">코트 매치 방식</div>'
-      +'<div style="display:flex;gap:6px;margin-bottom:14px">'
-        +'<button data-a="setgm" data-v="any" style="flex:1;padding:10px;border-radius:10px;font-weight:700;font-size:13px;min-height:44px;border:1px solid '+(!isIntra?'var(--lime)':'var(--border)')+';background:'+(!isIntra?'var(--tab-active)':'var(--card)')+';color:'+(!isIntra?'var(--lime)':'var(--muted)')+'">전체 혼합<br><span style="font-size:10px;font-weight:400">모두 골고루 (추천)</span></button>'
-        +'<button data-a="setgm" data-v="intra" style="flex:1;padding:10px;border-radius:10px;font-weight:700;font-size:13px;min-height:44px;border:1px solid '+(isIntra?'var(--lime)':'var(--border)')+';background:'+(isIntra?'var(--tab-active)':'var(--card)')+';color:'+(isIntra?'var(--lime)':'var(--muted)')+'">코트 분리<br><span style="font-size:10px;font-weight:400">각 코트끼리만</span></button>'
-      +'</div>';
-  }
   var sbNtc='';
   var dupNtc=S.dup?ntc('var(--red)','⚠️','파트너가 이전 라운드와 겹쳤어요','모든 조합을 이미 사용해서 불가피해요'):'';
   var cycleNtc='';
   if(S.pairMode==='cycle'){
-    cycleNtc=ntc('#c8f135','🔁','순환 모드 (3세트 주기)',
+    cycleNtc=ntc('var(--lime)','🔁','순환 모드 (3세트 주기)',
       '랜덤 → 밸런스 → 수준별 반복 (수준별은 좁게↔넓게 번갈아)');
   }
 
@@ -1755,7 +1716,7 @@ function mStep2Html(){
         } else if(isIP){
           statusRow='<div style="border-top:1px solid var(--border);padding:4px 8px;display:flex;justify-content:space-between;align-items:center">'
             +'<span style="font-size:10px;font-weight:700;color:'+cc+'">🏸 진행 중</span>'
-            +'<button data-a="doneMatch" data-id="'+mt.id+'" style="font-size:10px;color:var(--lime);background:transparent;padding:1px 6px;border:1px solid rgba(200,241,53,.3);border-radius:5px">✓ 완료</button>'
+            +'<button data-a="doneMatch" data-id="'+mt.id+'" style="font-size:10px;color:var(--lime);background:transparent;padding:1px 6px;border:1px solid var(--border);border-radius:5px">✓ 완료</button>'
             +'</div>';
         } else {
           statusRow='<div style="border-top:1px solid var(--border);padding:4px 8px;display:flex;justify-content:space-between">'
@@ -1816,7 +1777,7 @@ function mStep2Html(){
           +'<span style="font-weight:700;font-size:15px;color:var(--white)">'+ln2+'</span>'
           +'<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:'+lcc2+'22;border:1px solid '+lcc2+'44;color:'+lcc2+'">'+lc2+'코트</span>'
         +'</div>'
-        +'<button data-a="arriveLate" data-n="'+ln2+'" style="padding:7px 16px;border-radius:9px;font-weight:700;font-size:13px;background:rgba(200,241,53,.15);border:1px solid rgba(200,241,53,.4);color:var(--lime)">✅ 도착!</button>'
+        +'<button data-a="arriveLate" data-n="'+ln2+'" style="padding:7px 16px;border-radius:9px;font-weight:700;font-size:13px;background:var(--lime-soft);border:1px solid var(--lime);color:var(--lime)">✅ 도착!</button>'
       +'</div>';
     }
     lateArrivalsPanel+='</div>';
@@ -1852,18 +1813,8 @@ function mStep2Html(){
 function renderAttendList(){
   var listEl=document.getElementById('attend-list-body');
   if(!listEl){render();return;}
-  var nc=Math.max(1,S.numCourts||1);
   var q=(S.attendSearch||'').trim().toLowerCase();
   var filtered=q?S.roster.filter(function(p){return p.name.toLowerCase().indexOf(q)!==-1;}):S.roster;
-  var courtCounts={};
-  for(var ci=1;ci<=nc;ci++) courtCounts[ci]=0;
-  var lateCount=0;
-  for(var k in S.selected){
-    if(!S.selected[k]) continue;
-    if(S.lateArrivals[k]){lateCount++;continue;}
-    var c=S.playerGroups[k]||1;
-    courtCounts[c]=(courtCounts[c]||0)+1;
-  }
 
   var html='';
   if(filtered.length===0){
@@ -1872,30 +1823,17 @@ function renderAttendList(){
     for(var i=0;i<filtered.length;i++){
       var p=filtered[i],isSel=!!S.selected[p.name];
       var isLate=!!S.lateArrivals[p.name];
-      var pCourt=S.playerGroups[p.name]||1;
-      var pc=COURT_COLORS[(pCourt-1)%COURT_COLORS.length];
-      var courtBtns='<div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;align-items:flex-end">';
-      var courtRow='<div style="display:flex;gap:2px">';
-      for(var ci=1;ci<=nc;ci++){
-        var cc=COURT_COLORS[(ci-1)%COURT_COLORS.length];
-        var isAc=isSel&&pCourt===ci;
-        var cnt=courtCounts[ci]||0;
-        courtRow+='<button data-a="courtSelect" data-n="'+p.name+'" data-v="'+ci+'" style="padding:3px 7px;border-radius:6px;font-size:10px;font-weight:800;min-height:26px;border:1px solid '+(isAc?cc:'var(--border)')+';background:'+(isAc?cc+'28':'transparent')+';color:'+(isAc?cc:'var(--muted)')+'">'+ci+'코트<span style="font-size:9px;opacity:.7">('+cnt+')</span></button>';
-      }
-      courtRow+='</div>';
-      var lateBtn=isSel?'<button data-a="togglelate" data-n="'+p.name+'" style="padding:1px 7px;border-radius:6px;font-size:10px;font-weight:700;min-height:20px;border:1px solid '+(isLate?'rgba(241,160,53,.5)':'var(--border)')+';background:'+(isLate?'rgba(241,160,53,.2)':'transparent')+';color:'+(isLate?'#f1a035':'var(--muted)')+'">'+(isLate?'🕐 늦참':'늦참')+'</button>':'';
-      courtBtns+=courtRow+lateBtn+'</div>';
-      var leftBorderColor=isSel?(isLate?'rgba(241,160,53,.5)':pc+'88'):'transparent';
-      html+='<div class="attend-item'+(isSel?' selected':'')+'" style="border-left:3px solid '+leftBorderColor+';padding-left:10px;'+(isLate?'border-color:rgba(241,160,53,.35);background:rgba(241,160,53,.06);':'')+'">'
+      var lateBtn=isSel?'<button data-a="togglelate" data-n="'+p.name+'" style="padding:5px 11px;border-radius:8px;font-size:11px;font-weight:700;min-height:30px;flex-shrink:0;border:1px solid '+(isLate?'rgba(241,160,53,.5)':'var(--border)')+';background:'+(isLate?'rgba(241,160,53,.2)':'transparent')+';color:'+(isLate?'#f1a035':'var(--muted)')+'">'+(isLate?'🕐 늦참':'늦참')+'</button>':'';
+      var leftBorderColor=isSel?(isLate?'rgba(241,160,53,.5)':'var(--lime)'):'transparent';
+      html+='<div class="attend-item'+(isSel?' selected':'')+'" data-a="attendToggle" data-n="'+p.name+'" style="border-left:3px solid '+leftBorderColor+';padding-left:10px;'+(isLate?'border-color:rgba(241,160,53,.35);background:rgba(241,160,53,.06);':'')+'">'
         +'<div class="chk-box'+(isSel?' on':'')+'">'+( isSel?'✓':'')+'</div>'
         +'<div class="attend-info">'
           +'<div class="attend-name">'+p.name
-            +(isSel?'<span style="font-size:10px;font-weight:700;color:'+pc+';margin-left:5px">'+pCourt+'코트</span>':'')
             +(isLate?'<span style="font-size:10px;font-weight:700;color:#f1a035;margin-left:4px">🕐 늦참</span>':'')
           +'</div>'
           +'<div class="attend-badges">'+gbadge(p.gender)+lvbadge(p.level)+'</div>'
         +'</div>'
-        +courtBtns
+        +lateBtn
         +'</div>';
     }
   }
@@ -1918,7 +1856,7 @@ function renderRosterList(){
       var isRSel=!!S.rSelected[p.name];
       html+='<div class="roster-item'+(isRSel?' editing':'')+'" '+(inSel?'data-a="rtogitem" data-n="'+p.name+'"':'')+'>'
         +(inSel
-          ?'<div style="width:22px;height:22px;border-radius:6px;border:2px solid '+(isRSel?'var(--lime)':'var(--border)')+';background:'+(isRSel?'var(--lime)':'transparent')+';display:flex;align-items:center;justify-content:center;font-size:13px;color:#0d3b2e;flex-shrink:0">'+(isRSel?'✓':'')+'</div>'
+          ?'<div style="width:22px;height:22px;border-radius:6px;border:2px solid '+(isRSel?'var(--lime)':'var(--border)')+';background:'+(isRSel?'var(--lime)':'transparent')+';display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--accent-ink);flex-shrink:0">'+(isRSel?'✓':'')+'</div>'
           :'<div class="roster-num">'+(origIdx+1)+'</div>')
         +'<div class="roster-info">'+gbadge(p.gender)
           +(rq?p.name.replace(new RegExp('('+rq.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'$1'):('<span class="roster-name">'+p.name+'</span>'))
@@ -2111,20 +2049,13 @@ function act(a,d){
   else if(a==='tog'){
     var n=d.n;
     S.selected[n]=!S.selected[n];
-    if(S.selected[n]&&!S.playerGroups[n]) S.playerGroups[n]=1;
     render();
   }
-  else if(a==='courtSelect'){
-    var n=d.n, cv=parseInt(d.v);
-    if(S.selected[n]&&(S.playerGroups[n]||1)===cv&&!S.lateArrivals[n]){
-      // 같은 코트 다시 누르면 참석 취소
-      S.selected[n]=false;
-    } else {
-      // 코트 선택 → 참석 + 배정
-      S.selected[n]=true;
-      S.playerGroups[n]=cv;
-      delete S.lateArrivals[n];
-    }
+  else if(a==='attendToggle'){
+    var n=d.n;
+    S.selected[n]=!S.selected[n];
+    if(!S.selected[n]) delete S.lateArrivals[n];
+    renderAttendList();
     render();
   }
   else if(a==='togglelate'){
@@ -2175,11 +2106,6 @@ function act(a,d){
     S.blockInfo=S.blockInfo.filter(function(b){return b.blockNum<=maxBlock;}).concat(rot.blockInfo);
     fbSaveSession();render();
     toast('✅ '+ln+' 도착! 남은 '+remainSets+'세트에 반영됐어요');
-  }
-  else if(a==='courtall'){
-    var cv=parseInt(d.v);
-    for(var k in S.selected){if(S.selected[k]&&!S.lateArrivals[k])S.playerGroups[k]=cv;}
-    render();
   }
   else if(a==='grpall'){
     var gv=parseInt(d.v);
@@ -2233,7 +2159,7 @@ function act(a,d){
   }
   else if(a==='rst'){
     S.standby=null;S.teams=[];S.matches=[];S.pairMode='random';
-    S.history=[];S.round=1;S.dup=false;S.numGames=0;S.numCourts=1;S.matchMode='rotation';S.numRotations=10;S.groups={};S.groupNames=['1그룹','2그룹'];S.playerGroups={};S.restCount={};S.blockInfo=[];S.attendSearch='';S.groupMode='intra';S.lateArrivals={};
+    S.history=[];S.round=1;S.dup=false;S.numGames=0;S.numCourts=1;S.matchMode='rotation';S.numRotations=10;S.groups={};S.groupNames=['1그룹','2그룹'];S.playerGroups={};S.restCount={};S.blockInfo=[];S.attendSearch='';S.groupMode='any';S.lateArrivals={};
     S.mStep=1;
     if(db) db.ref('session').remove(); // Firebase에서 세션 삭제
     render();
@@ -2246,7 +2172,7 @@ document.addEventListener('click',function(e){
   var el=e.target.closest('[data-a]');
   if(!el||el.disabled)return;
   // pgrp 버튼 클릭 시 부모 attend-item(tog)으로 전파 방지
-  if(el.dataset.a==='pgrp'||el.dataset.a==='grpall'||el.dataset.a==='togglelate'||el.dataset.a==='setnc'||el.dataset.a==='courtall'||el.dataset.a==='setgames'||el.dataset.a==='arriveLate'||el.dataset.a==='rtogitem'||el.dataset.a==='rtogsel'||el.dataset.a==='rdelsel'||el.dataset.a==='courtSelect'||el.dataset.a==='doneMatch'||el.dataset.a==='delMatch'){
+  if(el.dataset.a==='pgrp'||el.dataset.a==='grpall'||el.dataset.a==='togglelate'||el.dataset.a==='setnc'||el.dataset.a==='setgames'||el.dataset.a==='arriveLate'||el.dataset.a==='rtogitem'||el.dataset.a==='rtogsel'||el.dataset.a==='rdelsel'||el.dataset.a==='doneMatch'||el.dataset.a==='delMatch'){
     e.stopPropagation();
   }
   act(el.dataset.a,el.dataset);
