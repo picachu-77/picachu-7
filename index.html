@@ -1535,7 +1535,7 @@ function mStep1Html(){
     +'</div>'
     // 선택 현황
     +'<div class="select-bar" style="margin-bottom:8px">'
-      +'<span class="select-count">'+selCount+'명 선택됨'+(q?' · 검색 '+filtered.length+'명':'')+'</span>'
+      +'<span class="select-count" style="font-size:16px;font-weight:800;color:var(--lime)">✅ '+selCount+'명 선택'+(q?'<span style="font-size:12px;font-weight:600;color:var(--muted)"> · 검색 '+filtered.length+'명</span>':'')+'</span>'
       +'<div style="display:flex;gap:6px">'
         +(q?'<button class="select-all-btn" data-a="selfiltered">검색결과 전체선택</button>':'')
         +'<button class="select-all-btn" data-a="selall" data-v="'+(allSelected?'none':'all')+'">'+(allSelected?'전체 해제':'전체 선택')+'</button>'
@@ -1603,9 +1603,18 @@ function mStep1Html(){
     out+='<button class="btn" data-a="applylate" style="width:100%;margin-top:10px;background:rgba(241,160,53,.18);border:1px solid rgba(241,160,53,.4);color:#f1a035;font-size:14px;padding:12px">🕐 늦참 반영하기 ('+lateCount+'명 합류)</button>';
   }
 
-  out+='<div style="display:flex;justify-content:flex-end;margin-top:12px">'
-    +'<button class="btn pri" data-a="mg2" '+(enough?'':'disabled')+'>대진표 생성 →</button>'
-    +'</div>';
+  // 하단 고정 바에 가리지 않도록 여백
+  out+='<div style="height:84px"></div>';
+  // ── 화면 하단 고정 바 (스크롤해도 항상 보임) ──
+  out+='<div style="position:fixed;left:0;right:0;bottom:0;z-index:500;display:flex;justify-content:center;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 70%,transparent);">'
+    +'<div style="width:100%;max-width:480px;display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:10px 14px;box-shadow:0 -2px 16px rgba(0,0,0,.15)">'
+      +'<div style="flex-shrink:0">'
+        +'<div style="font-size:18px;font-weight:800;color:var(--lime);line-height:1.1">'+selCount+'<span style="font-size:13px;font-weight:600">명</span></div>'
+        +'<div style="font-size:10px;color:var(--muted)">선택됨'+(lateCount?' (늦참 '+lateCount+')':'')+'</div>'
+      +'</div>'
+      +'<button class="btn pri" data-a="mg2" '+(enough?'':'disabled')+' style="flex:1;margin:0">대진표 생성 →</button>'
+    +'</div>'
+  +'</div>';
   return out;
 }
 
