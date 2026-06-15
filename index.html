@@ -1017,7 +1017,7 @@ function copyResults(){
   for(var i=0;i<ms.length;i++){
     var m=ms[i],t1=null,t2=null;
     for(var j=0;j<ts.length;j++){if(ts[j].id===m.t1)t1=ts[j];if(ts[j].id===m.t2)t2=ts[j];}
-    if(S.matchMode==='rotation'&&m.blockNum!==curBlock){curBlock=m.blockNum;lines.push('[ 세트 '+curBlock+' ]');}
+    if(S.matchMode==='rotation'&&m.blockNum!==curBlock){curBlock=m.blockNum;lines.push('[ 게임 '+curBlock+' ]');}
     lines.push((i+1)+'게임  '+t1.p1.name+' & '+t1.p2.name+'  vs  '+t2.p1.name+' & '+t2.p2.name);
   }
   if(S.standby)lines.push('──────────────\n⏳ 대기: '+S.standby.name);
@@ -1046,7 +1046,7 @@ function fbCopyUrl(url){var ta=document.createElement('textarea');ta.value=url;t
 // ── 대진표 이미지 생성 ──────────────────────────────────────────────
 function generateResultImage(){
   var ms=S.matches,ts=S.teams;
-  var COURT_COLS=['#4fc3f7','#f48fb1','#66bb6a','#f1d035','#f18835','#a278f1'];
+  var COURT_COLS=['#1565c0','#c2185b','#2e7d32','#ef6c00','#6a1b9a','#00838f'];
   var KO='"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif';
 
   // 세트별, 코트별 그룹핑
@@ -1118,16 +1118,16 @@ function generateResultImage(){
   var ctx=canvas.getContext('2d');
 
   // 배경
-  ctx.fillStyle='#0d3b2e';ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='#c8f135';ctx.fillRect(0,0,W,4);
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#1f8a4c';ctx.fillRect(0,0,W,4);
 
   // 타이틀
   ctx.textAlign='center';
-  ctx.fillStyle='#c8f135';ctx.font='bold 28px '+KO;
+  ctx.fillStyle='#1f8a4c';ctx.font='bold 28px '+KO;
   ctx.fillText('⚡ 피카츄의 배드민턴매치',W/2,42);
-  ctx.fillStyle='rgba(255,255,255,0.55)';ctx.font='13px '+KO;
+  ctx.fillStyle='rgba(22,36,28,0.55)';ctx.font='13px '+KO;
   ctx.fillText('라운드 '+S.round+'  ·  총 '+ms.length+'게임',W/2,64);
-  ctx.strokeStyle='rgba(200,241,53,0.25)';ctx.lineWidth=1;
+  ctx.strokeStyle='rgba(31,138,76,0.3)';ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(padX,76);ctx.lineTo(W-padX,76);ctx.stroke();
 
   // 컬럼별 y 추적
@@ -1145,9 +1145,9 @@ function generateResultImage(){
 
     // 세트 라벨
     var bi=null;for(var bi2=0;bi2<S.blockInfo.length;bi2++)if(S.blockInfo[bi2].blockNum===bn){bi=S.blockInfo[bi2];break;}
-    var sLabel='세트 '+bn+(bi&&bi.modeLabel?'  ·  '+bi.modeLabel:'');
+    var sLabel='게임 '+bn;
     ctx.textAlign='left';
-    ctx.fillStyle='#c8f135';ctx.font='bold 13px '+KO;
+    ctx.fillStyle='#1f8a4c';ctx.font='bold 13px '+KO;
     ctx.fillText(sLabel,colX,y+14);
     y+=setLabelH;
 
@@ -1167,9 +1167,11 @@ function generateResultImage(){
         var mt1=cms[mi].t1,mt2=cms[mi].t2;
         var cy=y+mi*(cardH+cardGap);
 
-        // 카드 배경 + 왼쪽 색 바
-        ctx.fillStyle='rgba(255,255,255,0.06)';
+        // 카드 배경 + 테두리 + 왼쪽 색 바
+        ctx.fillStyle='#f5f7f4';
         roundRect(ctx,subX,cy,subColW,cardH,8);ctx.fill();
+        ctx.strokeStyle='rgba(22,36,28,0.12)';ctx.lineWidth=1;
+        roundRect(ctx,subX,cy,subColW,cardH,8);ctx.stroke();
         ctx.fillStyle=cc;ctx.fillRect(subX,cy,3,cardH);
 
         // 코트 표시 (멀티코트일 때만, 작게)
@@ -1183,13 +1185,13 @@ function generateResultImage(){
         var t2name=mt2.p1.name+'·'+mt2.p2.name;
         var midY=cy+cardH/2+(ncols>1?6:2);
 
-        ctx.textAlign='left';ctx.fillStyle='#fff';ctx.font='bold 13px '+KO;
+        ctx.textAlign='left';ctx.fillStyle='#16241c';ctx.font='bold 13px '+KO;
         ctx.fillText(t1name,subX+8,midY);
 
         ctx.textAlign='center';ctx.fillStyle=cc;ctx.font='bold 10px '+KO;
         ctx.fillText('vs',subX+subColW/2,midY);
 
-        ctx.textAlign='right';ctx.fillStyle='#fff';ctx.font='bold 13px '+KO;
+        ctx.textAlign='right';ctx.fillStyle='#16241c';ctx.font='bold 13px '+KO;
         ctx.fillText(t2name,subX+subColW-8,midY);
       }
     }
@@ -1199,7 +1201,7 @@ function generateResultImage(){
   }
 
   // 푸터
-  ctx.textAlign='center';ctx.fillStyle='rgba(255,255,255,0.25)';
+  ctx.textAlign='center';ctx.fillStyle='rgba(22,36,28,0.3)';
   ctx.font='11px '+KO;ctx.fillText('피카츄의 배드민턴매치',W/2,H-14);
 
   canvas.toBlob(function(blob){
@@ -1257,7 +1259,7 @@ function printSchedule(){
     setsMap[bn][cid].push({m:m,t1:t1,t2:t2});
   }
 
-  var body='';
+  var body='<div class="games-grid">';
   for(var si=0;si<blockOrder.length;si++){
     var bn=blockOrder[si];
     var setData=setsMap[bn];
@@ -1266,10 +1268,8 @@ function printSchedule(){
 
     // 세트 헤더
     var bi=null;for(var bi2=0;bi2<S.blockInfo.length;bi2++)if(S.blockInfo[bi2].blockNum===bn){bi=S.blockInfo[bi2];break;}
-    var sLabel='세트 '+bn+(bi&&bi.modeLabel?' · '+bi.modeLabel:'');
-    // 6세트마다 페이지 분할 (마지막 세트는 제외)
-    var pageBreakClass=((si+1)%6===0&&si!==blockOrder.length-1)?' page-break':'';
-    body+='<div class="set-block'+(si>0?' mt':'')+pageBreakClass+'">';
+    var sLabel='게임 '+bn;
+    body+='<div class="set-block">';
     body+='<div class="set-hd">'+sLabel+'</div>';
 
     // 코트 가로 배치
@@ -1303,29 +1303,29 @@ function printSchedule(){
     body+='</div>'; // court-row
     body+='</div>'; // set-block
   }
+  body+='</div>'; // games-grid
 
   var html='<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>대진표</title>'
     +'<style>'
     +'*{box-sizing:border-box;margin:0;padding:0}'
-    +'body{font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif;padding:20px;color:#111;max-width:700px;margin:0 auto}'
-    +'.hd{text-align:center;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #1a5c42}'
+    +'body{font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif;padding:16px;color:#111;max-width:1100px;margin:0 auto}'
+    +'.hd{text-align:center;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #1a5c42}'
     +'.hd h2{font-size:20px;font-weight:800;color:#1a5c42;margin-bottom:3px}'
     +'.hd p{font-size:12px;color:#888}'
-    +'.set-block{page-break-inside:avoid;break-inside:avoid;margin-bottom:6px}'
-    +'.page-break{page-break-after:always;break-after:page}'
-    +'.set-hd{font-size:12px;font-weight:700;color:#1a5c42;padding:4px 0;margin-bottom:6px}'
-    +'.set-block.mt{margin-top:14px;padding-top:10px;border-top:1px solid #ddd}'
-    +'.court-row{display:flex;gap:8px;margin-bottom:4px;page-break-inside:avoid;break-inside:avoid}'
+    +'.games-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}'
+    +'.set-block{page-break-inside:avoid;break-inside:avoid;border:1px solid #e8e8e8;border-radius:8px;padding:6px 7px;background:#fafafa}'
+    +'.set-hd{font-size:12px;font-weight:800;color:#1a5c42;padding-bottom:4px;margin-bottom:5px;border-bottom:1px solid #e0e0e0}'
+    +'.court-row{display:flex;flex-direction:column;gap:5px}'
     +'.court-col{flex:1}'
-    +'.court-lbl{font-size:11px;font-weight:800;padding:3px 0;text-align:center;margin-bottom:4px}'
-    +'.match-card{border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;margin-bottom:6px;page-break-inside:avoid;break-inside:avoid}'
-    +'.match-body{display:flex;align-items:center;padding:10px 8px}'
-    +'.team{flex:1}'
+    +'.court-lbl{font-size:9px;font-weight:800;padding:1px 0;text-align:center;margin-bottom:3px}'
+    +'.match-card{border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;background:#fff;page-break-inside:avoid;break-inside:avoid}'
+    +'.match-body{display:flex;align-items:center;padding:6px 6px}'
+    +'.team{flex:1;min-width:0}'
     +'.team.r{text-align:right}'
-    +'.pname{font-size:13px;font-weight:600;line-height:1.5}'
-    +'.vs{font-size:11px;color:#bbb;padding:0 6px;flex-shrink:0}'
-    +'.prtbtn{display:block;margin:20px auto 0;padding:10px 28px;background:#1a5c42;color:#c8f135;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer}'
-    +'@media print{.prtbtn{display:none}}'
+    +'.pname{font-size:11px;font-weight:600;line-height:1.45;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+    +'.vs{font-size:9px;color:#bbb;padding:0 4px;flex-shrink:0}'
+    +'.prtbtn{display:block;margin:18px auto 0;padding:10px 28px;background:#1a5c42;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer}'
+    +'@media print{.prtbtn{display:none}@page{size:landscape;margin:10mm}}'
     +'</style></head><body>'
     +'<div class="hd"><h2>⚡ 피카츄의 배드민턴매치</h2><p>라운드 '+S.round+' · 총 '+ms.length+'게임</p></div>'
     +body
@@ -1577,7 +1577,7 @@ function mStep1Html(){
         +'<b style="color:var(--white)">🎯 수준별(좁게)</b> — 딱 비슷한 등급끼리<br>'
         +'<b style="color:var(--white)">🎺 수준별(넓게)</b> — 인접 등급도 섞여 멤버 다양<br>'
         +'<b style="color:var(--white)">🧑‍🏫 사제 매치</b> — 고수+초보 한 팀 (초보가 배우는 느낌)<br>'
-        +'<b style="color:var(--white)">🔁 순환</b> — 매 세트 자동 변경 (랜덤→밸런스→수준별→사제 매치)'
+        +'<b style="color:var(--white)">🔁 순환</b> — 매 게임 자동 변경 (랜덤→밸런스→수준별→사제 매치)'
       +'</div>'
       :'')
     +courtSummary;
@@ -1665,7 +1665,7 @@ function mStep2Html(){
   var rotHint=''; // 로테이션일 때 "= N세트" 안내
   if(isRot&&S.numGames>0&&gps>0){
     var autoSets=Math.ceil(S.numGames/Math.min(S.numCourts,gps||1));
-    rotHint='<span style="font-size:11px;color:var(--muted);white-space:nowrap">= '+autoSets+'세트</span>';
+    rotHint='<span style="font-size:11px;color:var(--muted);white-space:nowrap">= '+autoSets+'게임</span>';
   }
   var countRow='<div style="display:flex;gap:8px;align-items:flex-end">'
     +'<div style="flex:2">'
@@ -1688,7 +1688,7 @@ function mStep2Html(){
   var cycleNtc='';
   if(S.pairMode==='cycle'){
     cycleNtc=ntc('var(--lime)','🔁','순환 모드 (자동 변경)',
-      '랜덤 → 밸런스 → 수준별 → 사제 매치 순서로 매 세트 자동 변경돼요');
+      '랜덤 → 밸런스 → 수준별 → 사제 매치 순서로 매 게임 자동 변경돼요');
   }
 
   // ── 경기 카드 — 세트별, 코트 가로 배치 ──
@@ -1717,9 +1717,8 @@ function mStep2Html(){
     var biObj=null;for(var bi2=0;bi2<S.blockInfo.length;bi2++)if(S.blockInfo[bi2].blockNum===bn){biObj=S.blockInfo[bi2];break;}
     var sbLabel='';
     var dupLabel=biObj&&biObj.dup?'<span style="font-size:11px;color:var(--red)"> · ⚠️</span>':'';
-    var mLabel=biObj&&biObj.modeLabel?'<span style="font-size:11px;color:var(--muted)"> · '+biObj.modeLabel+'</span>':'';
     mCards+='<div class="set-divider"><div class="set-divider-line"></div>'
-      +'<span class="set-divider-label">세트 '+bn+sbLabel+dupLabel+mLabel+'</span>'
+      +'<span class="set-divider-label">게임 '+bn+sbLabel+dupLabel+'</span>'
       +'<div class="set-divider-line"></div></div>';
 
     // 코트 가로 배치 (화면 너비가 코트 수에 맞춰 넓어지므로 grid로 균등 배치)
@@ -2134,7 +2133,7 @@ function act(a,d){
     S.matches=keptMatches.concat(rot.matches);
     S.blockInfo=S.blockInfo.filter(function(b){return b.blockNum<=maxBlock;}).concat(rot.blockInfo);
     fbSaveSession();render();
-    toast('✅ '+ln+' 도착! 남은 '+remainSets+'세트에 반영됐어요');
+    toast('✅ '+ln+' 도착! 남은 '+remainSets+'게임에 반영됐어요');
   }
   else if(a==='grpall'){
     var gv=parseInt(d.v);
@@ -2151,7 +2150,7 @@ function act(a,d){
   else if(a==='mg1'){S.mStep=1;render();}
   else if(a==='mg2'){
     if(S.numCourts<1){toast('⚠️ 코트 수를 입력해주세요!');return;}
-    if(S.numGames<1){toast('⚠️ 게임(세트) 수를 입력해주세요!');return;}
+    if(S.numGames<1){toast('⚠️ 게임 수를 입력해주세요!');return;}
     S.matches=[];S.teams=[];S.blockInfo=[];S.mStep=2;render();
   }
   else if(a==='sm'){S.pairMode=d.v;render();}
@@ -2159,7 +2158,7 @@ function act(a,d){
   else if(a==='mmode'){S.matchMode=d.v;render();}
   else if(a==='genmatches'||a==='rsf'){
     if(S.numCourts<1){toast('⚠️ 코트 수를 입력해주세요!');return;}
-    if(S.numGames<1){toast('⚠️ 게임(세트) 수를 입력해주세요!');return;}
+    if(S.numGames<1){toast('⚠️ 게임 수를 입력해주세요!');return;}
     doTeams();
     if(S.matchMode==='rotation'){
       var rot=mkRotationSchedule();S.teams=rot.teams;S.matches=rot.matches;S.blockInfo=rot.blockInfo;
