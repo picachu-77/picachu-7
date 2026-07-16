@@ -277,6 +277,7 @@ var S={
   groups:{},     // {teamId: 1 or 2} — 혼합 모드 그룹 배정
   restCount:{},  // {이름: 쉰 횟수} — 세션 내 누적
   lateArrivals:{}, // {이름: true} — 늦게 오는 사람
+  swapSel:null, // 대진 조정: 첫 번째로 선택(탭)한 선수 키
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -1752,11 +1753,17 @@ function mStep2Html(){
             +'<button data-a="doneMatch" data-id="'+mt.id+'" style="font-size:10px;color:var(--muted);background:transparent;padding:1px 6px;border:1px solid var(--border);border-radius:5px">✓ 완료</button>'
             +'</div>';
         }
+        function pcell(pl,tid,slot){
+          var key=tid+'_'+slot;
+          var sel=(S.swapSel===key);
+          var selStyle=sel?'background:var(--lime);color:var(--accent-ink);':'';
+          return '<div class="mname pswap'+(sel?' sel':'')+'" data-a="swapPick" data-k="'+key+'" draggable="true" data-drag="'+key+'" style="font-size:13px;border-radius:6px;padding:1px 5px;cursor:pointer;'+selStyle+'">'+pl.name+'</div>';
+        }
         mCards+='<div class="mcard" style="border-left:3px solid '+(isDone?'rgba(255,255,255,.1)':cc)+';margin-bottom:6px;opacity:'+(isDone?'.4':'1')+'">'
           +'<div class="mbody" style="padding:10px 10px 6px">'
-            +'<div class="mteam"><div class="mname" style="font-size:13px">'+mt1.p1.name+'</div><div class="mname" style="font-size:13px">'+mt1.p2.name+'</div></div>'
+            +'<div class="mteam">'+pcell(mt1.p1,mt1.id,'p1')+pcell(mt1.p2,mt1.id,'p2')+'</div>'
             +'<div class="mcenter"><div style="font-size:11px;font-weight:700;color:'+(isIP?cc:'var(--muted)')+'">VS</div></div>'
-            +'<div class="mteam r"><div class="mname" style="font-size:13px">'+mt2.p1.name+'</div><div class="mname" style="font-size:13px">'+mt2.p2.name+'</div></div>'
+            +'<div class="mteam r">'+pcell(mt2.p1,mt2.id,'p1')+pcell(mt2.p2,mt2.id,'p2')+'</div>'
           +'</div>'
           +statusRow
           +'</div>';
@@ -1830,6 +1837,11 @@ function mStep2Html(){
     // 늦참 패널 (있을 때만)
     +lateArrivalsPanel
     +sbNtc+dupNtc
+    +(hasMatches?'<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;padding:8px 12px;border-radius:10px;background:var(--lime-soft);border:1px solid var(--border);font-size:12px;color:var(--muted)">'
+      +(S.swapSel
+        ?'<span style="color:var(--lime);font-weight:700">👆 바꿀 상대를 한 번 더 누르세요</span><button data-a="swapCancel" style="margin-left:auto;font-size:11px;padding:3px 10px;border-radius:7px;border:1px solid var(--border);background:var(--card);color:var(--muted)">취소</button>'
+        :'✋ 선수 이름을 <b style="color:var(--lime)">두 명 차례로 누르면</b> 자리가 바뀌어요 (끌어다 놓기도 가능)')
+      +'</div>':'')
     +(hasMatches?'<div style="margin-bottom:14px">'+mCards+'</div>':'');
 }
 
@@ -1991,11 +2003,48 @@ function render(){
   var gn1el=document.getElementById('gn1'),gn2el=document.getElementById('gn2');
   if(gn1el){gn1el.addEventListener('input',function(e){S.groupNames[0]=e.target.value||'1그룹';fbSaveGnames();});}
   if(gn2el){gn2el.addEventListener('input',function(e){S.groupNames[1]=e.target.value||'2그룹';fbSaveGnames();});}
+
+  // 대진 조정: 드래그 앤 드롭 (PC용, 폰은 탭으로 처리)
+  var swapEls=document.querySelectorAll('.pswap');
+  for(var si=0;si<swapEls.length;si++){
+    (function(el){
+      el.addEventListener('dragstart',function(e){
+        e.dataTransfer.setData('text/plain',el.getAttribute('data-drag'));
+        el.style.opacity='0.4';
+      });
+      el.addEventListener('dragend',function(){el.style.opacity='';});
+      el.addEventListener('dragover',function(e){e.preventDefault();el.style.outline='2px dashed var(--lime)';});
+      el.addEventListener('dragleave',function(){el.style.outline='';});
+      el.addEventListener('drop',function(e){
+        e.preventDefault();el.style.outline='';
+        var from=e.dataTransfer.getData('text/plain');
+        var to=el.getAttribute('data-drag');
+        act('swapDo',{from:from,to:to});
+      });
+    })(swapEls[si]);
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════
 // 액션
 // ══════════════════════════════════════════════════════════════════
+// 대진 조정: 두 선수(키='팀id_자리') 맞바꾸기
+function doSwap(keyA,keyB){
+  var a=keyA.split('_'), b=keyB.split('_');
+  var tidA=parseInt(a[0]), slotA=a[1];
+  var tidB=parseInt(b[0]), slotB=b[1];
+  var teamA=null, teamB=null;
+  for(var i=0;i<S.teams.length;i++){
+    if(S.teams[i].id===tidA) teamA=S.teams[i];
+    if(S.teams[i].id===tidB) teamB=S.teams[i];
+  }
+  if(!teamA||!teamB) return;
+  // 같은 팀 안에서 두 자리 교환도 허용
+  var tmp=teamA[slotA];
+  teamA[slotA]=teamB[slotB];
+  teamB[slotB]=tmp;
+}
+
 function act(a,d){
   d=d||{};
 
@@ -2107,6 +2156,35 @@ function act(a,d){
     var mid=parseInt(d.id);
     S.matches=S.matches.filter(function(m){return m.id!==mid;});
     fbSaveSession();render();
+  }
+  else if(a==='swapCancel'){
+    S.swapSel=null;
+    render();
+  }
+  else if(a==='swapPick'){
+    var key=d.k;
+    if(!key) return;
+    if(!S.swapSel){
+      // 첫 번째 선수 선택
+      S.swapSel=key;
+    } else if(S.swapSel===key){
+      // 같은 사람 다시 누르면 선택 취소
+      S.swapSel=null;
+    } else {
+      // 두 번째 선수 → 맞바꾸기
+      doSwap(S.swapSel,key);
+      S.swapSel=null;
+      fbSaveSession();
+    }
+    render();
+  }
+  else if(a==='swapDo'){
+    // 드래그 앤 드롭: d.from → d.to
+    if(d.from&&d.to&&d.from!==d.to){
+      doSwap(d.from,d.to);
+      S.swapSel=null;
+      fbSaveSession();render();
+    }
   }
   else if(a==='arriveLate'){
     var ln=d.n;
