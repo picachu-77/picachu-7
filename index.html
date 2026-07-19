@@ -52,7 +52,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 
 /* ── 탭 ── */
 .tabs{display:flex;border-bottom:1px solid var(--border);margin:0 20px}
-.tab{flex:1;padding:12px 0;text-align:center;font-weight:700;font-size:14px;
+.tab{flex:1;padding:12px 0;text-align:center;font-weight:700;font-size:13px;
   color:var(--muted);background:transparent;border-bottom:2px solid transparent;
   transition:all .2s;margin-bottom:-1px}
 .tab.active{color:var(--lime);border-bottom-color:var(--lime);font-weight:800}
@@ -278,6 +278,12 @@ var S={
   restCount:{},  // {이름: 쉰 횟수} — 세션 내 누적
   lateArrivals:{}, // {이름: true} — 늦게 오는 사람
   swapSel:null, // 대진 조정: 첫 번째로 선택(탭)한 선수 키
+  // ── 토너먼트 모드 ──
+  tSelected:{},   // {이름:true} 토너먼트 참석자
+  tTeams:[],      // [{id, p1, p2, name}] 2인 팀
+  tBracket:[],    // [[{t1,t2,winner,score1,score2,slotId}...(1라운드), ...], ...] 라운드별 경기
+  tStep:1,        // 1:참석자·팀 구성  2:브래킷
+  tSearch:'',     // 토너먼트 참석자 검색
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -320,7 +326,8 @@ function fbSaveSession(){
     numGames:S.numGames, numCourts:S.numCourts, selected:S.selected, playerGroups:S.playerGroups,
     standby:S.standby, restCount:S.restCount, history:S.history,
     dup:S.dup, mStep:S.mStep, groupNames:S.groupNames, groupMode:S.groupMode,
-    lateArrivals:S.lateArrivals
+    lateArrivals:S.lateArrivals,
+    tSelected:S.tSelected, tTeams:S.tTeams, tBracket:S.tBracket, tStep:S.tStep
   };
   db.ref('session').set(session).catch(function(){});
 }
@@ -423,6 +430,10 @@ function restoreSession(d){
   if(d.groupNames&&Array.isArray(d.groupNames)) S.groupNames=d.groupNames;
   if(d.groupMode) S.groupMode=d.groupMode;
   if(d.lateArrivals) S.lateArrivals=d.lateArrivals;
+  if(d.tSelected) S.tSelected=d.tSelected;
+  if(d.tTeams) S.tTeams=d.tTeams;
+  if(d.tBracket) S.tBracket=d.tBracket;
+  if(d.tStep) S.tStep=d.tStep;
   render();
   toast('대진표를 불러왔어요 😊');
 }
@@ -1880,6 +1891,170 @@ function mStep2Html(){
 // ══════════════════════════════════════════════════════════════════
 // 명단 목록만 부분 업데이트 (검색 시 포커스 유지)
 // 참석자 목록만 부분 업데이트 (검색 시 포커스 유지)
+// ══════════════════════════════════════════════════════════════════
+// 토너먼트 탭 UI
+// ══════════════════════════════════════════════════════════════════
+// Step 1: 참석자 선택 + 팀 구성
+function tStep1Html(){
+  if(S.roster.length===0){
+    return '<div class="empty"><div class="empty-icon">📋</div>'
+      +'<div class="empty-txt">명단이 비어있어요</div>'
+      +'<div class="empty-sub">먼저 "명단 관리"에서 회원을 등록해주세요</div></div>'
+      +'<button class="btn pri" data-a="gotab" data-v="roster" style="width:100%;margin-top:12px">명단 등록하러 가기 →</button>';
+  }
+  var selCount=Object.keys(S.tSelected).filter(function(k){return S.tSelected[k];}).length;
+  var allSel=selCount===S.roster.length;
+  var q=(S.tSearch||'').trim().toLowerCase();
+  var filtered=q?S.roster.filter(function(p){return p.name.toLowerCase().indexOf(q)!==-1;}):S.roster;
+
+  var out='<div class="ttl">🏆 토너먼트</div>'
+    +'<div class="sub" style="margin-bottom:14px">참석자를 고르면 2명씩 팀으로 묶어 단판 토너먼트를 진행해요</div>';
+
+  // 검색
+  out+='<div style="position:relative;margin-bottom:10px">'
+    +'<input id="tsrch" class="inp" placeholder="🔍 이름 검색..." value="'+(S.tSearch||'')+'" autocomplete="off" autocorrect="off" style="padding-right:36px">'
+    +(q?'<button data-a="tsrchclr" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:transparent;font-size:16px;color:var(--muted);padding:0">×</button>':'')
+    +'</div>';
+  // 선택 현황
+  out+='<div class="select-bar" style="margin-bottom:8px">'
+    +'<span class="select-count" style="font-size:16px;font-weight:800;color:var(--lime)">🏆 '+selCount+'명 선택</span>'
+    +'<button class="select-all-btn" data-a="tselall" data-v="'+(allSel?'none':'all')+'">'+(allSel?'전체 해제':'전체 선택')+'</button>'
+    +'</div>';
+
+  // 참석자 목록
+  out+='<div id="t-attend-body">';
+  for(var i=0;i<filtered.length;i++){
+    var p=filtered[i],isSel=!!S.tSelected[p.name];
+    out+='<div class="attend-item'+(isSel?' selected':'')+'" data-a="tToggle" data-n="'+p.name+'" style="border-left:3px solid '+(isSel?'var(--lime)':'transparent')+';padding-left:10px">'
+      +'<div class="chk-box'+(isSel?' on':'')+'">'+(isSel?'✓':'')+'</div>'
+      +'<div class="attend-info"><div class="attend-name">'+p.name+'</div>'
+      +'<div class="attend-badges">'+gbadge(p.gender)+lvbadge(p.level)+'</div></div>'
+      +'</div>';
+  }
+  out+='</div>';
+
+  // 홀수 안내
+  if(selCount%2===1){
+    out+='<div style="padding:9px 12px;border-radius:10px;margin-top:10px;font-size:12px;background:rgba(241,160,53,.12);border:1px solid rgba(241,160,53,.3);color:var(--warn)">⚠️ 홀수예요. 팀을 짜면 1명이 빠져요. 짝수로 맞춰주세요.</div>';
+  }
+
+  // 팀 구성 버튼
+  if(selCount>=4){
+    out+='<button class="btn pri" data-a="tMakeTeams" style="width:100%;margin-top:12px;font-size:15px;padding:13px">👥 랜덤으로 팀 짜기 ('+Math.floor(selCount/2)+'팀)</button>';
+  } else {
+    out+='<div style="text-align:center;color:var(--muted);font-size:13px;margin-top:12px">최소 4명(2팀) 이상 선택해주세요</div>';
+  }
+
+  // 이미 팀이 짜여 있으면 표시 + 브래킷 시작
+  if(S.tTeams.length>=2){
+    out+='<div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">'
+      +'<div style="font-weight:700;font-size:14px;margin-bottom:4px">구성된 팀 '+tag(S.tTeams.length+'팀')+'</div>'
+      +'<div style="font-size:11px;color:var(--muted);margin-bottom:10px">🔀 두 선수 이름을 차례로 누르면 자리를 바꿀 수 있어요</div>';
+    for(var i=0;i<S.tTeams.length;i++){
+      var t=S.tTeams[i];
+      var c=TC[i%TC.length];
+      out+='<div style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:11px;background:var(--card);border:1px solid var(--border);margin-bottom:6px">'
+        +'<div style="width:22px;height:22px;border-radius:50%;background:'+c+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">'+(i+1)+'</div>'
+        +'<div style="flex:1;display:flex;align-items:center;gap:6px">'
+          +tSwapCell(t.p1,t.id,'p1')
+          +'<span style="color:var(--muted);font-size:12px">+</span>'
+          +tSwapCell(t.p2,t.id,'p2')
+        +'</div>'
+        +'</div>';
+    }
+    out+='<button class="btn pri" data-a="tStartBracket" style="width:100%;margin-top:10px;font-size:15px;padding:14px">🏆 토너먼트 시작 →</button>';
+    out+='</div>';
+  }
+  return out;
+}
+// 팀 구성 화면에서 선수 자리 바꾸기용 셀
+function tSwapCell(pl,tid,slot){
+  var key='T'+tid+'_'+slot;
+  var sel=(S.swapSel===key);
+  var selStyle=sel?'background:var(--lime);color:var(--accent-ink);':'';
+  return '<span class="tswap'+(sel?' sel':'')+'" data-a="tSwapPick" data-k="'+key+'" style="font-weight:700;font-size:14px;border-radius:6px;padding:2px 7px;cursor:pointer;'+selStyle+'">'+pl.name+'</span>';
+}
+
+// Step 2: 브래킷
+function tStep2Html(){
+  if(!S.tBracket||S.tBracket.length===0){
+    return '<div class="empty"><div class="empty-icon">🏆</div><div class="empty-txt">아직 토너먼트가 없어요</div></div>'
+      +'<button class="btn gho" data-a="tBack1" style="width:100%;margin-top:12px">← 팀 구성으로</button>';
+  }
+  var roundNames=tRoundNames(S.tBracket.length);
+  var champion=null;
+  var finalR=S.tBracket[S.tBracket.length-1];
+  if(finalR.length===1&&finalR[0].winner) champion=finalR[0].winner;
+
+  var out='<div class="ttl">🏆 토너먼트</div>';
+  // 우승 표시
+  if(champion){
+    out+='<div style="text-align:center;padding:16px;border-radius:14px;margin-bottom:14px;background:linear-gradient(135deg,rgba(241,208,53,.2),rgba(241,160,53,.15));border:1px solid rgba(241,208,53,.4)">'
+      +'<div style="font-size:32px">🏆</div>'
+      +'<div style="font-size:12px;color:var(--muted);margin:4px 0">우승</div>'
+      +'<div style="font-size:20px;font-weight:800;color:var(--warn)">'+tTeamName(champion)+'</div>'
+      +'</div>';
+  }
+  out+='<div style="font-size:11px;color:var(--muted);margin-bottom:12px">👇 이긴 팀을 누르면 다음 판으로 올라가요 · 점수는 원하면 입력하세요</div>';
+
+  // 라운드별 표시
+  for(var r=0;r<S.tBracket.length;r++){
+    out+='<div class="set-divider"><div class="set-divider-line"></div>'
+      +'<span class="set-divider-label">'+roundNames[r]+'</span>'
+      +'<div class="set-divider-line"></div></div>';
+    var round=S.tBracket[r];
+    for(var mi=0;mi<round.length;mi++){
+      out+=tMatchCardHtml(r,mi);
+    }
+  }
+
+  out+='<div class="brow" style="margin-top:14px">'
+    +'<button class="btn gho" data-a="tBack1" style="flex:1">← 팀 구성</button>'
+    +'<button class="btn dan" data-a="tReset" style="flex:1">🔄 초기화</button>'
+    +'</div>';
+  return out;
+}
+// 라운드 이름 (결승/4강/8강...)
+function tRoundNames(n){
+  // n=라운드 수. 마지막이 결승
+  var names=[];
+  var labels=['결승','준결승(4강)','8강','16강','32강'];
+  for(var r=0;r<n;r++){
+    var fromEnd=n-1-r; // 0이면 결승
+    names.push(labels[fromEnd]||( (n-r)+'라운드'));
+  }
+  return names;
+}
+// 경기 카드
+function tMatchCardHtml(r,mi){
+  var m=S.tBracket[r][mi];
+  var t1=m.t1, t2=m.t2;
+  var isBye=m.bye;
+  var wId=m.winner?m.winner.id:null;
+
+  function side(t,which){
+    if(!t) return '<div style="flex:1;padding:10px 12px;color:var(--muted);font-size:13px;text-align:'+(which==='t1'?'left':'right')+'">'+(isBye?'부전승':'대기 중')+'</div>';
+    var isW=(wId===t.id);
+    var canPick=t1&&t2&&!isBye;
+    var bg=isW?'var(--lime)':'transparent';
+    var col=isW?'var(--accent-ink)':'var(--white)';
+    var scoreKey=which==='t1'?'score1':'score2';
+    var scoreVal=m[scoreKey]||'';
+    return '<div style="flex:1;display:flex;flex-direction:column;gap:4px;align-items:'+(which==='t1'?'flex-start':'flex-end')+'">'
+      +'<div '+(canPick?'data-a="tWin" data-r="'+r+'" data-m="'+mi+'" data-w="'+which+'"':'')+' style="'+(canPick?'cursor:pointer;':'')+'background:'+bg+';color:'+col+';border-radius:8px;padding:6px 10px;font-weight:700;font-size:14px;'+(isW?'':'border:1px solid var(--border)')+'">'+tTeamName(t)+(isW?' 👑':'')+'</div>'
+      +(canPick?'<input class="t-score" data-a="tScore" data-r="'+r+'" data-m="'+mi+'" data-s="'+which+'" type="number" inputmode="numeric" placeholder="점수" value="'+scoreVal+'" style="width:64px;padding:3px 6px;border-radius:6px;background:var(--input-bg);border:1px solid var(--border);color:var(--white);font-size:12px;text-align:center;outline:none">':'')
+      +'</div>';
+  }
+  var cc=TC[mi%TC.length];
+  return '<div class="mcard" style="border-left:3px solid '+cc+';margin-bottom:8px">'
+    +'<div style="padding:10px 12px;display:flex;align-items:center;gap:8px">'
+      +side(t1,'t1')
+      +'<div style="font-size:11px;font-weight:700;color:var(--muted);flex-shrink:0">VS</div>'
+      +side(t2,'t2')
+    +'</div>'
+    +'</div>';
+}
+
 function renderAttendList(){
   var listEl=document.getElementById('attend-list-body');
   if(!listEl){render();return;}
@@ -1945,12 +2120,16 @@ function renderRosterList(){
 
 function render(){
   var themeIcon=S.theme==='dark'?'☀️':'🌙';
-  var tabRoster='<button class="tab'+(S.tab==='roster'?' active':'')+'" data-a="gotab" data-v="roster">👥 명단 관리</button>';
-  var tabMatch='<button class="tab'+(S.tab==='match'?' active':'')+'" data-a="gotab" data-v="match">🏸 매치 진행</button>';
+  var tabRoster='<button class="tab'+(S.tab==='roster'?' active':'')+'" data-a="gotab" data-v="roster">👥 명단</button>';
+  var tabMatch='<button class="tab'+(S.tab==='match'?' active':'')+'" data-a="gotab" data-v="match">🏸 매치</button>';
+  var tabTour='<button class="tab'+(S.tab==='tour'?' active':'')+'" data-a="gotab" data-v="tour">🏆 토너먼트</button>';
 
   var bodyHtml='';
   if(S.tab==='roster'){
     bodyHtml=rosterHtml();
+  } else if(S.tab==='tour'){
+    var tContent=(S.tStep===2)?tStep2Html():tStep1Html();
+    bodyHtml='<div class="card">'+tContent+'</div>';
   } else {
     var stepContent='';
     if(S.mStep===1)stepContent=mStep1Html();
@@ -1974,7 +2153,7 @@ function render(){
       +'<div class="app-sub">동호회 배드민턴 대진표 앱</div>'
       +'<button class="theme-btn" data-a="thm">'+themeIcon+'</button>'
     +'</div>'
-    +'<div class="tabs">'+tabRoster+tabMatch+'</div>'
+    +'<div class="tabs">'+tabRoster+tabMatch+tabTour+'</div>'
     +'<div class="content">'+bodyHtml+'</div>'
     +'</div>';
 
@@ -2034,6 +2213,23 @@ function render(){
   if(gn1el){gn1el.addEventListener('input',function(e){S.groupNames[0]=e.target.value||'1그룹';fbSaveGnames();});}
   if(gn2el){gn2el.addEventListener('input',function(e){S.groupNames[1]=e.target.value||'2그룹';fbSaveGnames();});}
 
+  // 토너먼트 참석자 검색
+  var tsrchEl=document.getElementById('tsrch');
+  if(tsrchEl){
+    tsrchEl.addEventListener('input',function(e){S.tSearch=e.target.value;render();});
+  }
+  // 토너먼트 점수 입력 (즉시 저장, 포커스 유지 위해 render 안 함)
+  var scoreEls=document.querySelectorAll('.t-score');
+  for(var sci=0;sci<scoreEls.length;sci++){
+    scoreEls[sci].addEventListener('input',function(e){
+      var el=e.target;
+      var r=parseInt(el.getAttribute('data-r')), mi=parseInt(el.getAttribute('data-m')), s=el.getAttribute('data-s');
+      var m=S.tBracket[r][mi];
+      if(s==='t1') m.score1=el.value; else m.score2=el.value;
+      fbSaveSession();
+    });
+  }
+
   // 대진 조정: 드래그 앤 드롭 (PC용, 폰은 탭으로 처리)
   var swapEls=document.querySelectorAll('.pswap');
   for(var si=0;si<swapEls.length;si++){
@@ -2058,6 +2254,139 @@ function render(){
 // ══════════════════════════════════════════════════════════════════
 // 액션
 // ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════
+// 토너먼트 로직
+// ══════════════════════════════════════════════════════════════════
+function getTSelected(){
+  return S.roster.filter(function(p){return S.tSelected[p.name];});
+}
+// 참석자로 2인 팀 랜덤 구성 (홀수면 마지막 1명은 제외 안내)
+function tMakeTeams(){
+  var ps=shuf(getTSelected());
+  var teams=[],id=0;
+  for(var i=0;i+1<ps.length;i+=2){
+    teams.push({id:id++,p1:ps[i],p2:ps[i+1]});
+  }
+  S.tTeams=teams;
+}
+// 팀 이름 헬퍼
+function tTeamName(t){return t?(t.p1.name+'·'+t.p2.name):'';}
+// 2의 거듭제곱으로 올림 (브래킷 크기)
+function nextPow2(n){var p=1;while(p<n)p*=2;return p;}
+// 브래킷 생성: 부전승(bye) 포함. 팀 수가 2^k가 아니면 일부 팀이 1라운드 부전승
+function tBuildBracket(){
+  var teams=S.tTeams.slice();
+  if(teams.length<2){S.tBracket=[];return;}
+  var size=nextPow2(teams.length);
+  var byes=size-teams.length; // 부전승 수
+  // 슬롯 배치: 부전승이 서로 다른 경기에 분산되도록
+  // 각 경기(2슬롯)에 팀을 채우되, 부전승 받을 팀은 상대 자리를 비움(null)
+  // 방식: 시드가 높은(앞) byes팀이 1라운드 부전승 → [팀, null] 형태로 앞쪽 경기에 배치
+  var numMatches=size/2;
+  var slots=new Array(size).fill(undefined);
+  var ti=0;
+  // 앞에서부터 각 경기: 부전승이 남아있으면 이 경기를 [팀, bye]로
+  for(var mi2=0;mi2<numMatches;mi2++){
+    if(mi2<byes){
+      // 부전승 경기: 팀 한 명만
+      slots[mi2*2]=teams[ti++];
+      slots[mi2*2+1]=null; // bye
+    } else {
+      // 정상 경기: 팀 둘
+      slots[mi2*2]=teams[ti++];
+      slots[mi2*2+1]=teams[ti++];
+    }
+  }
+
+  // 1라운드 경기 구성 (size/2 경기)
+  var round1=[];
+  var mid=0;
+  for(var i=0;i<size;i+=2){
+    var a=slots[i], b=slots[i+1];
+    var m={id:'r0m'+(mid++), t1:a, t2:b, winner:null, score1:'', score2:''};
+    // 한쪽이 bye면 자동 진출
+    if(a&&!b){m.winner=a; m.bye=true;}
+    else if(!a&&b){m.winner=b; m.bye=true;}
+    round1.push(m);
+  }
+  var bracket=[round1];
+  // 이후 라운드 빈 경기 생성
+  var cnt=round1.length;
+  var r=1;
+  while(cnt>1){
+    var round=[];
+    for(var i=0;i<cnt/2;i++){
+      round.push({id:'r'+r+'m'+i, t1:null, t2:null, winner:null, score1:'', score2:''});
+    }
+    bracket.push(round);
+    cnt=cnt/2;
+    r++;
+  }
+  // 부전승으로 이미 정해진 승자를 다음 라운드로 전파
+  S.tBracket=bracket;
+  tPropagateAll();
+}
+// 특정 경기의 승자를 다음 라운드 자리로 올림
+function tAdvance(roundIdx,matchIdx){
+  if(roundIdx+1>=S.tBracket.length) return; // 결승이면 끝
+  var m=S.tBracket[roundIdx][matchIdx];
+  var next=S.tBracket[roundIdx+1][Math.floor(matchIdx/2)];
+  if(matchIdx%2===0) next.t1=m.winner;
+  else next.t2=m.winner;
+}
+// 전체 브래킷에서 확정된 승자들을 다음 라운드로 전파
+function tPropagateAll(){
+  for(var r=0;r<S.tBracket.length-1;r++){
+    for(var mi=0;mi<S.tBracket[r].length;mi++){
+      var m=S.tBracket[r][mi];
+      if(m.winner) tAdvance(r,mi);
+    }
+  }
+}
+// 승자 지정 (팀 선택)
+function tPickWinner(roundIdx,matchIdx,which){
+  var m=S.tBracket[roundIdx][matchIdx];
+  if(!m.t1||!m.t2) return; // 상대가 아직 없으면 무시
+  var w=which==='t1'?m.t1:m.t2;
+  // 이미 같은 팀이 승자면 취소 (토글)
+  if(m.winner&&m.winner.id===w.id){
+    m.winner=null;
+  } else {
+    m.winner=w;
+  }
+  // 승자 바뀌면 이후 라운드 자리 다시 계산 (하위 경기 결과 초기화)
+  tResetDownstream(roundIdx,matchIdx);
+  tPropagateAll();
+}
+// 승자 변경 시, 그 이후 라운드에서 이 경기로부터 온 팀 자리 비우기
+function tResetDownstream(roundIdx,matchIdx){
+  var r=roundIdx+1, mi=Math.floor(matchIdx/2), slot=(matchIdx%2===0)?'t1':'t2';
+  while(r<S.tBracket.length){
+    var m=S.tBracket[r][mi];
+    var removed=m[slot];
+    m[slot]=null;
+    // 이 경기 승자였다면 승자·점수도 리셋하고 계속 아래로
+    if(m.winner&&removed&&m.winner.id===removed.id){ m.winner=null; }
+    m.score1='';m.score2='';
+    slot=(mi%2===0)?'t1':'t2';
+    mi=Math.floor(mi/2);
+    r++;
+  }
+}
+
+// 토너먼트 팀 선수 맞바꾸기 (키='T팀id_자리')
+function tDoSwap(keyA,keyB){
+  var a=keyA.replace('T','').split('_'), b=keyB.replace('T','').split('_');
+  var tidA=parseInt(a[0]), slotA=a[1], tidB=parseInt(b[0]), slotB=b[1];
+  var teamA=null,teamB=null;
+  for(var i=0;i<S.tTeams.length;i++){
+    if(S.tTeams[i].id===tidA) teamA=S.tTeams[i];
+    if(S.tTeams[i].id===tidB) teamB=S.tTeams[i];
+  }
+  if(!teamA||!teamB) return;
+  var tmp=teamA[slotA]; teamA[slotA]=teamB[slotB]; teamB[slotB]=tmp;
+}
+
 // 대진 조정: 두 선수(키='팀id_자리') 맞바꾸기
 function doSwap(keyA,keyB){
   var a=keyA.split('_'), b=keyB.split('_');
@@ -2191,6 +2520,43 @@ function act(a,d){
     S.swapSel=null;
     render();
   }
+  // ── 토너먼트 액션 ──
+  else if(a==='tToggle'){
+    var n=d.n; S.tSelected[n]=!S.tSelected[n]; render();
+  }
+  else if(a==='tselall'){
+    if(d.v==='all'){for(var i=0;i<S.roster.length;i++)S.tSelected[S.roster[i].name]=true;}
+    else S.tSelected={};
+    render();
+  }
+  else if(a==='tsrchclr'){S.tSearch='';render();}
+  else if(a==='tMakeTeams'){
+    tMakeTeams();
+    fbSaveSession();render();
+  }
+  else if(a==='tSwapPick'){
+    var key=d.k;
+    if(!key) return;
+    if(!S.swapSel){ S.swapSel=key; }
+    else if(S.swapSel===key){ S.swapSel=null; }
+    else { tDoSwap(S.swapSel,key); S.swapSel=null; fbSaveSession(); }
+    render();
+  }
+  else if(a==='tStartBracket'){
+    tBuildBracket();
+    S.tStep=2; S.swapSel=null;
+    fbSaveSession();render();
+  }
+  else if(a==='tBack1'){ S.tStep=1; render(); }
+  else if(a==='tWin'){
+    tPickWinner(parseInt(d.r),parseInt(d.m),d.w);
+    fbSaveSession();render();
+  }
+  else if(a==='tReset'){
+    if(!confirm('토너먼트를 초기화할까요? (팀은 유지돼요)')) return;
+    tBuildBracket(); // 브래킷만 새로
+    fbSaveSession();render();
+  }
   else if(a==='swapPick'){
     var key=d.k;
     if(!key) return;
@@ -2308,7 +2674,7 @@ document.addEventListener('click',function(e){
   var el=e.target.closest('[data-a]');
   if(!el||el.disabled)return;
   // pgrp 버튼 클릭 시 부모 attend-item(tog)으로 전파 방지
-  if(el.dataset.a==='pgrp'||el.dataset.a==='grpall'||el.dataset.a==='togglelate'||el.dataset.a==='setnc'||el.dataset.a==='setgames'||el.dataset.a==='arriveLate'||el.dataset.a==='rtogitem'||el.dataset.a==='rtogsel'||el.dataset.a==='rdelsel'||el.dataset.a==='doneMatch'||el.dataset.a==='delMatch'){
+  if(el.dataset.a==='pgrp'||el.dataset.a==='grpall'||el.dataset.a==='togglelate'||el.dataset.a==='setnc'||el.dataset.a==='setgames'||el.dataset.a==='arriveLate'||el.dataset.a==='rtogitem'||el.dataset.a==='rtogsel'||el.dataset.a==='rdelsel'||el.dataset.a==='doneMatch'||el.dataset.a==='delMatch'||el.dataset.a==='tScore'||el.dataset.a==='tWin'){
     e.stopPropagation();
   }
   act(el.dataset.a,el.dataset);
