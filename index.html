@@ -41,7 +41,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 #app{min-height:100vh;display:flex;justify-content:center;padding:0 0 80px;
   background-image:radial-gradient(ellipse at 12% 0%,rgba(31,138,76,.06) 0%,transparent 45%),
   radial-gradient(ellipse at 88% 8%,rgba(31,138,76,.04) 0%,transparent 42%)}
-.wrap{width:100%;max-width:480px;transition:max-width .3s ease}
+.wrap{width:100%;max-width:640px;transition:max-width .3s ease}
 
 /* ── 상단 헤더 ── */
 .app-header{padding:20px 20px 0;text-align:center;position:relative}
@@ -151,7 +151,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .mcard{border-radius:14px;overflow:hidden;border:1px solid var(--border);background:var(--card);margin-bottom:10px;box-shadow:var(--shadow);transition:all .2s}
 .mcard:active{transform:scale(.98)}
 .mbody{padding:16px 18px;display:flex;align-items:center;gap:7px}
-.mteam{flex:1}
+.mteam{flex:1;min-width:0}
 .mteam.r{text-align:right}
 .mname{font-weight:700;font-size:15px;margin-bottom:5px;color:var(--white);line-height:1.3}
 .mcenter{text-align:center;min-width:48px;flex-shrink:0}
@@ -1105,9 +1105,9 @@ function generateResultImage(){
   // 캔버스 너비/높이 (코트 많으면 넓게)
   var W;
   if(maxCourts>=3){
-    W=Math.max(700,maxCourts*230); // 코트당 약 230px 확보
+    W=Math.max(900,maxCourts*320); // 코트당 약 320px 확보 (긴 이름 대비)
   } else {
-    W=imgCols===1?700:(imgCols===2?900:1100);
+    W=imgCols===1?820:(imgCols===2?1160:1440);
   }
   var padX=20,headerH=90;
   var colGap=12;
@@ -1196,14 +1196,26 @@ function generateResultImage(){
         var t1name=mt1.p1.name+'·'+mt1.p2.name;
         var t2name=mt2.p1.name+'·'+mt2.p2.name;
         var midY=cy+cardH/2+(ncols>1?6:2);
-
-        ctx.textAlign='left';ctx.fillStyle='#16241c';ctx.font='bold 13px '+KO;
+        // 각 팀 이름이 쓸 수 있는 최대 폭 (카드 절반에서 vs와 여백 뺀 값)
+        var nameMaxW=(subColW-24)/2-6;
+        // 칸 폭에 맞춰 폰트 크기 자동 축소 (13 → 최소 9px)
+        function fitFont(txt){
+          var fs=13;
+          ctx.font='bold '+fs+'px '+KO;
+          while(ctx.measureText(txt).width>nameMaxW&&fs>9){
+            fs-=0.5; ctx.font='bold '+fs+'px '+KO;
+          }
+          return fs;
+        }
+        var fs1=fitFont(t1name);
+        ctx.textAlign='left';ctx.fillStyle='#16241c';ctx.font='bold '+fs1+'px '+KO;
         ctx.fillText(t1name,subX+8,midY);
 
         ctx.textAlign='center';ctx.fillStyle=cc;ctx.font='bold 10px '+KO;
         ctx.fillText('vs',subX+subColW/2,midY);
 
-        ctx.textAlign='right';ctx.fillStyle='#16241c';ctx.font='bold 13px '+KO;
+        var fs2=fitFont(t2name);
+        ctx.textAlign='right';ctx.fillStyle='#16241c';ctx.font='bold '+fs2+'px '+KO;
         ctx.fillText(t2name,subX+subColW-8,midY);
       }
     }
@@ -1354,7 +1366,7 @@ function printSchedule(){
     +'.hd{text-align:center;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #1a5c42}'
     +'.hd h2{font-size:20px;font-weight:800;color:#1a5c42;margin-bottom:3px}'
     +'.hd p{font-size:12px;color:#888}'
-    +'.games-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}'
+    +'.games-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}'
     +'.set-block{page-break-inside:avoid;break-inside:avoid;border:1px solid #e8e8e8;border-radius:8px;padding:6px 7px;background:#fafafa}'
     +'.set-hd{font-size:12px;font-weight:800;color:#1a5c42;padding-bottom:4px;margin-bottom:5px;border-bottom:1px solid #e0e0e0}'
     +'.court-row{display:flex;flex-direction:column;gap:5px}'
@@ -1364,7 +1376,7 @@ function printSchedule(){
     +'.match-body{display:flex;align-items:center;padding:6px 6px}'
     +'.team{flex:1;min-width:0}'
     +'.team.r{text-align:right}'
-    +'.pname{font-size:11px;font-weight:600;line-height:1.45;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+    +'.pname{font-size:11px;font-weight:600;line-height:1.4;word-break:break-all}'
     +'.vs{font-size:9px;color:#bbb;padding:0 4px;flex-shrink:0}'
     +'.prtbtn{display:block;margin:18px auto 0;padding:10px 28px;background:#1a5c42;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer}'
     +'@media print{.prtbtn{display:none}@page{size:landscape;margin:10mm}}'
@@ -1798,7 +1810,7 @@ function mStep2Html(){
           var key=tid+'_'+slot;
           var sel=(S.swapSel===key);
           var selStyle=sel?'background:var(--lime);color:var(--accent-ink);':'';
-          return '<div class="mname pswap'+(sel?' sel':'')+'" data-a="swapPick" data-k="'+key+'" draggable="true" data-drag="'+key+'" style="font-size:13px;border-radius:6px;padding:1px 5px;cursor:pointer;'+selStyle+'">'+pl.name+'</div>';
+          return '<div class="mname pswap'+(sel?' sel':'')+'" data-a="swapPick" data-k="'+key+'" draggable="true" data-drag="'+key+'" style="font-size:13px;border-radius:6px;padding:1px 5px;cursor:pointer;word-break:break-all;line-height:1.3;'+selStyle+'">'+pl.name+'</div>';
         }
         mCards+='<div class="mcard" style="border-left:3px solid '+(isDone?'rgba(255,255,255,.1)':cc)+';margin-bottom:6px;opacity:'+(isDone?'.4':'1')+'">'
           +'<div class="mbody" style="padding:10px 10px 6px">'
@@ -2138,11 +2150,11 @@ function render(){
   }
 
   // 매치 2단계에서 코트가 많으면 화면 너비 넓히기
-  var wrapWidth=480;
+  var wrapWidth=640;
   if(S.tab==='match'&&S.mStep===2){
     var courtCount=parseInt(S.numCourts)||1;
-    if(courtCount>=4) wrapWidth=860;
-    else if(courtCount===3) wrapWidth=680;
+    if(courtCount>=4) wrapWidth=920;
+    else if(courtCount===3) wrapWidth=760;
   }
 
   document.getElementById('app').innerHTML=
