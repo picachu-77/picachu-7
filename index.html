@@ -1235,8 +1235,19 @@ function generateResultImage(){
     var isAndroid=/Android/.test(ua);
     var isMobile=isIOS||isAndroid||('ontouchstart' in window&&navigator.maxTouchPoints>0&&window.innerWidth<1100);
     if(isMobile){
-      // 폰·태블릿: 이미지를 크게 띄우고 꾹 눌러 저장하도록 안내
-      showImageOverlay(blob);
+      // 폰·태블릿: 공유 시트로 바로 저장 (갤럭시·아이폰 모두 "이미지 저장" 선택 가능)
+      var file=new File([blob],'배드민턴대진표.png',{type:'image/png'});
+      if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+        navigator.share({files:[file],title:'배드민턴 대진표'})
+          .then(function(){ toast('✅ 저장 완료!'); })
+          .catch(function(e){
+            // 사용자가 취소한 게 아니면 오버레이로 대체
+            if(e&&e.name!=='AbortError') showImageOverlay(blob);
+          });
+      } else {
+        // 공유 미지원 기기: 이미지 띄워 꾹 눌러 저장
+        showImageOverlay(blob);
+      }
     } else {
       // 컴퓨터: 바로 다운로드
       dlBlob(blob);
@@ -1698,6 +1709,46 @@ function mStep1Html(){
 // ══════════════════════════════════════════════════════════════════
 // 탭 2: 매치 — Step 2 대진표 (팀구성방식 포함)
 // ══════════════════════════════════════════════════════════════════
+// 3게임 연속 출전/휴식인 사람 계산
+function calcStreaks(){
+  var result={playing:[],resting:[]};
+  if(!S.matches||S.matches.length===0) return result;
+  // 참석자 전체 (선택된 사람)
+  var attendees=[];
+  for(var k in S.selected){ if(S.selected[k]) attendees.push(k); }
+  if(attendees.length===0) return result;
+  // 게임(블록) 번호 목록 (실제 경기가 있는 것만, 정렬)
+  var tmap={};
+  for(var i=0;i<S.teams.length;i++) tmap[S.teams[i].id]=S.teams[i];
+  var blockSet={};
+  for(var i=0;i<S.matches.length;i++) blockSet[S.matches[i].blockNum]=true;
+  var blocks=Object.keys(blockSet).map(Number).sort(function(a,b){return a-b;});
+  if(blocks.length<3) return result; // 3게임 미만이면 연속 3 불가
+  // 각 게임별 출전자 집합
+  var playedIn={}; // playedIn[block] = {이름:true}
+  for(var bi=0;bi<blocks.length;bi++){
+    var bn=blocks[bi]; playedIn[bn]={};
+    for(var mi=0;mi<S.matches.length;mi++){
+      if(S.matches[mi].blockNum!==bn) continue;
+      var t1=tmap[S.matches[mi].t1], t2=tmap[S.matches[mi].t2];
+      [t1,t2].forEach(function(t){ if(t){ playedIn[bn][t.p1.name]=true; playedIn[bn][t.p2.name]=true; } });
+    }
+  }
+  // 각 사람별로 연속 출전/휴식 최대 길이 계산
+  for(var ai=0;ai<attendees.length;ai++){
+    var name=attendees[ai];
+    var maxPlay=0, maxRest=0, curPlay=0, curRest=0;
+    for(var bi=0;bi<blocks.length;bi++){
+      var inGame=!!playedIn[blocks[bi]][name];
+      if(inGame){ curPlay++; curRest=0; if(curPlay>maxPlay)maxPlay=curPlay; }
+      else { curRest++; curPlay=0; if(curRest>maxRest)maxRest=curRest; }
+    }
+    if(maxPlay>=3) result.playing.push(name);
+    if(maxRest>=3) result.resting.push(name);
+  }
+  return result;
+}
+
 function mStep2Html(){
   var isRot=S.matchMode==='rotation';
 
@@ -1895,6 +1946,25 @@ function mStep2Html(){
         ?'<span style="color:var(--lime);font-weight:700">👆 바꿀 상대를 한 번 더 누르세요</span><button data-a="swapCancel" style="margin-left:auto;font-size:11px;padding:3px 10px;border-radius:7px;border:1px solid var(--border);background:var(--card);color:var(--muted)">취소</button>'
         :'✋ 선수 이름을 <b style="color:var(--lime)">두 명 차례로 누르면</b> 자리가 바뀌어요 (끌어다 놓기도 가능)')
       +'</div>':'')
+    +(function(){
+        if(!hasMatches) return '';
+        var st=calcStreaks();
+        if(st.playing.length===0&&st.resting.length===0) return '';
+        var rows='';
+        if(st.playing.length>0){
+          rows+='<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:'+(st.resting.length>0?'6px':'0')+'">'
+            +'<span style="flex-shrink:0">🔥</span>'
+            +'<span><b style="color:var(--red)">3게임 연속 출전</b> : '+st.playing.join(', ')+'</span>'
+          +'</div>';
+        }
+        if(st.resting.length>0){
+          rows+='<div style="display:flex;align-items:flex-start;gap:6px">'
+            +'<span style="flex-shrink:0">💤</span>'
+            +'<span><b style="color:var(--warn)">3게임 연속 휴식</b> : '+st.resting.join(', ')+'</span>'
+          +'</div>';
+        }
+        return '<div style="margin-bottom:8px;padding:10px 12px;border-radius:10px;background:rgba(241,160,53,.12);border:1px solid rgba(241,160,53,.35);font-size:12px;color:var(--white);line-height:1.5">'+rows+'</div>';
+      })()
     +(hasMatches?'<div style="margin-bottom:14px">'+mCards+'</div>':'');
 }
 
