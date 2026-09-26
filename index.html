@@ -2,220 +2,422 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<meta name="theme-color" content="#f4f6f3">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="theme-color" content="#f6f8f6">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="피카츄의 배드민턴매치">
 <title>⚡ 피카츄의 배드민턴매치</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
 <style>
+/* ══════════════════════════════════════════════════════════════════
+   디자인 토큰
+   코트 옆에 서서 한 손으로 보는 화면이다. 큰 글자, 높은 대비, 큰 버튼.
+   기존 코드 곳곳의 인라인 스타일이 --lime/--white/--muted 등을 쓰고 있어
+   변수 이름은 그대로 두고 값만 새 팔레트에 연결한다.
+   ══════════════════════════════════════════════════════════════════ */
 body {
-  --bg:#0e1f18; --bg2:#0a1813; --white:#eef2ee; --muted:rgba(238,242,238,.45);
-  --card:rgba(255,255,255,.05); --border:rgba(255,255,255,.1);
-  --warn:#f1a035; --red:#f15555; --lime:#7ee08a; --lime-soft:rgba(126,224,138,.14);
-  --input-bg:rgba(255,255,255,.07); --fbox-bg:rgba(255,255,255,.04);
-  --chip-bg:rgba(255,255,255,.06); --mode-bg:rgba(255,255,255,.05);
-  --shadow:0 2px 12px rgba(0,0,0,.35); --tab-active:rgba(126,224,138,.16);
-  --accent-ink:#0e1f18;
+  /* 어두운 체육관 · 야간 */
+  --paper:#0B1210; --paper-2:#0E1714;
+  --surface:#141E19; --surface-2:#1B2721;
+  --ink-1:#E8EFEA; --ink-2:#9DACA4; --ink-3:#74847C;
+  --line-1:#26332C; --line-2:#1B2721;
+  --court:#3ED181; --court-ink:#08130D; --court-soft:rgba(62,209,129,.15);
+  --shuttle:#F5B33C; --shuttle-soft:rgba(245,179,60,.15);
+  --flag:#FF6B61;    --flag-soft:rgba(255,107,97,.15);
+  --net:rgba(232,239,234,.22);
+  --shadow-1:0 1px 2px rgba(0,0,0,.4);
+  --shadow-2:0 4px 20px rgba(0,0,0,.45);
+  --ring:rgba(62,209,129,.3);
 }
 body.light {
-  --bg:#f4f6f3; --bg2:#eaeee7; --white:#16241c; --muted:rgba(22,36,28,.5);
-  --card:#ffffff; --border:rgba(22,36,28,.1);
-  --warn:#e08600; --red:#e0443e; --lime:#1f8a4c; --lime-soft:#e3f3e9;
-  --input-bg:#ffffff; --fbox-bg:#f0f4ef;
-  --chip-bg:#eef2ec; --mode-bg:#ffffff;
-  --shadow:0 1px 2px rgba(22,36,28,.05),0 4px 16px rgba(22,36,28,.06); --tab-active:rgba(31,138,76,.1);
-  --accent-ink:#ffffff;
+  /* 형광등 밝은 체육관 — 기본 */
+  --paper:#F6F8F6; --paper-2:#EDF1EE;
+  --surface:#FFFFFF; --surface-2:#F2F5F2;
+  --ink-1:#0F1714; --ink-2:#46524C; --ink-3:#6B7A73;
+  --line-1:#DFE6E1; --line-2:#EDF1EE;
+  --court:#0E7C4A; --court-ink:#FFFFFF; --court-soft:#E4F3EA;
+  --shuttle:#B26A00; --shuttle-soft:#FBF0DC;
+  --flag:#C4362E;    --flag-soft:#FBE8E6;
+  --net:rgba(15,23,20,.18);
+  --shadow-1:0 1px 2px rgba(15,23,20,.05);
+  --shadow-2:0 6px 24px rgba(15,23,20,.09);
+  --ring:rgba(14,124,74,.22);
+}
+/* 예전 변수명 → 새 팔레트 (인라인 스타일 호환) */
+body{
+  --bg:var(--paper); --bg2:var(--paper-2);
+  --white:var(--ink-1); --muted:var(--ink-2);
+  --card:var(--surface); --border:var(--line-1);
+  --warn:var(--shuttle); --red:var(--flag);
+  --lime:var(--court); --lime-soft:var(--court-soft);
+  --input-bg:var(--surface); --fbox-bg:var(--surface-2);
+  --chip-bg:var(--surface-2); --mode-bg:var(--surface);
+  --shadow:var(--shadow-1); --tab-active:var(--court-soft);
+  --accent-ink:var(--court-ink);
+  /* 타이포 — 12px가 하한 (체육관에서 읽히는 최소 크기) */
+  --fs-xs:12px; --fs-sm:13px; --fs-md:15px; --fs-lg:17px;
+  --fs-xl:21px; --fs-2xl:27px;
+  --r-s:10px; --r-m:14px; --r-l:18px; --r-xl:24px;
+  --tap:44px;
+  --font:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,
+    'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+  --font-num:'Bricolage Grotesque',var(--font);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{background:var(--bg);font-family:'DM Sans','Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:var(--white);min-height:100vh;overscroll-behavior:none;transition:background .25s,color .25s}
-button,input{font-family:inherit;-webkit-appearance:none;appearance:none;border:none}
-button{cursor:pointer;touch-action:manipulation}
-input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
-::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-thumb{background:rgba(128,128,128,.3);border-radius:4px}
+html{-webkit-text-size-adjust:100%}
+html,body{background:var(--paper);font-family:var(--font);color:var(--ink-1);
+  min-height:100vh;overscroll-behavior-y:none;
+  font-size:var(--fs-md);line-height:1.5;letter-spacing:-.01em;
+  -webkit-font-smoothing:antialiased;
+  transition:background .2s ease,color .2s ease}
+button,input{font-family:inherit;-webkit-appearance:none;appearance:none;border:none;color:inherit}
+button{cursor:pointer;touch-action:manipulation;background:none}
+input[type=number]{-moz-appearance:textfield}
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+:focus-visible{outline:2px solid var(--court);outline-offset:2px;border-radius:6px}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:var(--line-1);border-radius:6px}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
 
-#app{min-height:100vh;display:flex;justify-content:center;padding:0 0 80px;
-  background-image:radial-gradient(ellipse at 12% 0%,rgba(31,138,76,.06) 0%,transparent 45%),
-  radial-gradient(ellipse at 88% 8%,rgba(31,138,76,.04) 0%,transparent 42%)}
-.wrap{width:100%;max-width:640px;transition:max-width .3s ease}
+#app{min-height:100vh;padding:0 0 max(28px,env(safe-area-inset-bottom))}
+.wrap{width:100%;max-width:1240px;margin:0 auto;padding:0 16px}
+@media(min-width:760px){ .wrap{padding:0 24px} }
+.content{padding:0}
 
 /* ── 상단 헤더 ── */
-.app-header{padding:20px 20px 0;text-align:center;position:relative}
-.app-title{font-family:'Archivo',sans-serif;font-weight:800;font-size:24px;letter-spacing:-.5px;color:var(--lime)}
-.app-sub{font-size:11px;color:var(--muted);letter-spacing:.5px;margin-bottom:16px}
-.theme-btn{position:absolute;top:20px;right:20px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:5px 11px;font-size:12px;color:var(--muted)}
-.share-btn{position:absolute;top:20px;left:20px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:5px 11px;font-size:12px;color:var(--muted)}
+.app-header{display:flex;align-items:center;gap:10px;padding:14px 0 12px;position:relative}
+.app-mark{font-size:20px;line-height:1;flex-shrink:0}
+.app-title{font-weight:800;font-size:var(--fs-lg);letter-spacing:-.035em;
+  color:var(--ink-1);white-space:nowrap}
+.app-sub{display:none;font-size:var(--fs-xs);color:var(--ink-3)}
+@media(min-width:760px){
+  .app-header{padding:20px 0 16px;gap:12px}
+  .app-title{font-size:var(--fs-xl)}
+  .app-sub{display:block}
+}
+.theme-btn{margin-left:auto;flex-shrink:0;width:var(--tap);height:var(--tap);
+  border-radius:50%;background:var(--surface);border:1px solid var(--line-1);
+  font-size:16px;color:var(--ink-2);box-shadow:var(--shadow-1);
+  display:flex;align-items:center;justify-content:center;transition:border-color .15s}
+.theme-btn:hover{border-color:var(--court)}
 
 /* ── 탭 ── */
-.tabs{display:flex;border-bottom:1px solid var(--border);margin:0 20px}
-.tab{flex:1;padding:12px 0;text-align:center;font-weight:700;font-size:13px;
-  color:var(--muted);background:transparent;border-bottom:2px solid transparent;
-  transition:all .2s;margin-bottom:-1px}
-.tab.active{color:var(--lime);border-bottom-color:var(--lime);font-weight:800}
-
-/* ── 콘텐츠 ── */
-.content{padding:16px 20px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line-1);margin-bottom:20px}
+.tab{flex:1;padding:12px 4px;min-height:var(--tap);text-align:center;
+  font-weight:700;font-size:var(--fs-sm);color:var(--ink-3);
+  border-bottom:2.5px solid transparent;margin-bottom:-1px;
+  transition:color .15s,border-color .15s}
+.tab:hover{color:var(--ink-2)}
+.tab.active{color:var(--court);border-bottom-color:var(--court)}
+@media(min-width:760px){ .tab{font-size:var(--fs-md);padding:14px 8px} }
 
 /* ── 스텝바 ── */
-.sbar{display:flex;align-items:flex-start;justify-content:center;margin-bottom:20px}
-.sdot-wrap{display:flex;flex-direction:column;align-items:center;gap:3px}
-.sdot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;transition:all .3s}
-.sdot.done,.sdot.active{background:var(--lime);border:2px solid var(--lime);color:var(--accent-ink)}
-.sdot.idle{background:transparent;border:2px solid var(--border);color:var(--muted)}
-.slabel{font-size:9px}
-.slabel.active{color:var(--lime);font-weight:700}
-.slabel.idle{color:var(--muted)}
-.sline{width:32px;height:2px;margin:0 2px;margin-bottom:16px}
-.sline.done{background:var(--lime)}
-.sline.idle{background:var(--border)}
+.sbar{display:flex;align-items:flex-start;justify-content:center;margin-bottom:18px}
+.sdot-wrap{display:flex;flex-direction:column;align-items:center;gap:5px;
+  padding:4px 8px;border-radius:var(--r-s);transition:background .15s}
+.sdot-wrap[data-a]:hover{background:var(--surface-2)}
+.sdot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-weight:800;font-size:var(--fs-xs);transition:all .2s}
+.sdot.done,.sdot.active{background:var(--court);border:2px solid var(--court);color:var(--court-ink)}
+.sdot.idle{background:transparent;border:2px solid var(--line-1);color:var(--ink-3)}
+.slabel{font-size:var(--fs-xs);font-weight:600}
+.slabel.active{color:var(--court);font-weight:800}
+.slabel.idle{color:var(--ink-3)}
+.sline{width:34px;height:2px;margin:14px 2px 0;border-radius:2px}
+.sline.done{background:var(--court)}
+.sline.idle{background:var(--line-1)}
 
 /* ── 카드 ── */
-.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;box-shadow:var(--shadow);margin-bottom:14px}
-.ttl{font-family:'Archivo',sans-serif;font-weight:800;font-size:23px;letter-spacing:-.5px;margin-bottom:3px;color:var(--white)}
-.sub{color:var(--muted);font-size:13px;margin-bottom:14px}
-.lbl{font-size:12px;color:var(--muted);margin-bottom:5px}
+.card{background:var(--surface);border:1px solid var(--line-1);
+  border-radius:var(--r-xl);padding:18px;box-shadow:var(--shadow-1);margin-bottom:14px}
+@media(min-width:760px){ .card{padding:24px} }
+.ttl{font-weight:800;font-size:var(--fs-2xl);letter-spacing:-.035em;
+  margin-bottom:4px;color:var(--ink-1)}
+.sub{color:var(--ink-2);font-size:var(--fs-sm);margin-bottom:14px}
+.lbl{font-size:var(--fs-xs);font-weight:700;color:var(--ink-3);margin-bottom:7px}
+
+/* ── 매치 화면 레이아웃 ──
+   넓은 화면에서는 설정을 왼쪽 레일로 보내고 대진표를 주인공으로 올린다 */
+.m-layout{display:grid;gap:16px}
+@media(min-width:1080px){
+  .m-layout{grid-template-columns:348px minmax(0,1fr);gap:22px;align-items:start}
+  .m-rail{position:sticky;top:16px;max-height:calc(100vh - 32px);
+    overflow-y:auto;overscroll-behavior:contain;padding-right:2px}
+}
+.m-main{min-width:0}
+
+/* 설정 접기 — 대진표가 생기면 좁은 화면에서는 접어두고
+   대진표를 첫 화면에 올린다. 넓은 화면은 레일이 옆에 있으므로 항상 펼침 */
+.rail-toggle{display:flex;align-items:center;gap:8px;width:100%;
+  padding:12px 2px;min-height:var(--tap);font-weight:800;font-size:var(--fs-md);
+  color:var(--ink-1);text-align:left}
+.rail-toggle .rt-sum{margin-left:auto;font-size:var(--fs-xs);font-weight:600;color:var(--ink-3)}
+.rail-body.closed{display:none}
+.rail-title{display:none}
+@media(min-width:1080px){
+  .rail-toggle{display:none}
+  .rail-body.closed{display:block}
+  .rail-title{display:block}
+}
 
 /* ── 뱃지/태그 ── */
-.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:9px;font-size:11px;font-weight:800}
-.tag{display:inline-block;padding:2px 8px;border-radius:16px;font-size:11px;font-weight:700}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:8px;
+  font-size:var(--fs-xs);font-weight:800;letter-spacing:-.01em}
+.tag{display:inline-block;padding:3px 10px;border-radius:999px;
+  font-size:var(--fs-xs);font-weight:700}
 
 /* ── 버튼 ── */
-.btn{padding:13px 18px;border-radius:13px;font-weight:700;font-size:14px;min-height:48px;
-  transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:5px}
-.btn.pri{background:var(--lime);color:var(--accent-ink);box-shadow:0 2px 8px rgba(31,138,76,.25)}
+.btn{padding:12px 18px;border-radius:var(--r-m);font-weight:700;
+  font-size:var(--fs-md);min-height:var(--tap);
+  transition:transform .12s,background .15s,border-color .15s,box-shadow .15s,color .15s;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn.pri{background:var(--court);color:var(--court-ink);box-shadow:var(--shadow-1)}
+.btn.pri:hover{box-shadow:0 4px 14px var(--ring)}
 .btn.pri:active{transform:translateY(1px)}
-.btn.gho{background:var(--card);border:1px solid var(--border);color:var(--white)}
-.btn.suc{background:rgba(100,200,100,.18);border:1px solid rgba(100,200,100,.35);color:#66cc66}
-.btn.dan{background:rgba(241,85,85,.12);border:1px solid rgba(241,85,85,.3);color:var(--red)}
-.btn:disabled{opacity:.35;pointer-events:none}
-.brow{display:flex;gap:8px}
+.btn.gho{background:var(--surface);border:1px solid var(--line-1);color:var(--ink-1)}
+.btn.gho:hover{border-color:var(--court);color:var(--court)}
+.btn.gho:active{transform:translateY(1px)}
+.btn.suc{background:var(--court-soft);border:1px solid transparent;color:var(--court)}
+.btn.suc:hover{border-color:var(--court)}
+.btn.dan{background:var(--flag-soft);border:1px solid transparent;color:var(--flag)}
+.btn.dan:hover{border-color:var(--flag)}
+.btn:disabled{opacity:.4;pointer-events:none}
+.brow{display:flex;gap:8px;flex-wrap:wrap}
+.brow>.btn{flex:1 1 130px}
 
 /* ── 입력 ── */
-.inp{width:100%;padding:12px 14px;border-radius:12px;background:var(--input-bg);border:1px solid var(--border);color:var(--white);font-size:15px;outline:none;transition:border .15s,box-shadow .15s}
-.inp:focus{border-color:var(--lime);box-shadow:0 0 0 3px var(--lime-soft)}
-.inp.err{border-color:var(--red)}
-.err-txt{font-size:11px;color:var(--red);margin-top:3px}
+.inp{width:100%;padding:12px 14px;border-radius:var(--r-m);background:var(--surface);
+  border:1.5px solid var(--line-1);color:var(--ink-1);font-size:var(--fs-md);
+  font-weight:600;min-height:var(--tap);outline:none;
+  transition:border-color .15s,box-shadow .15s}
+.inp::placeholder{color:var(--ink-3);font-weight:500}
+.inp:focus{border-color:var(--court);box-shadow:0 0 0 3px var(--ring)}
+.inp.err{border-color:var(--flag)}
+.err-txt{font-size:var(--fs-xs);color:var(--flag);margin-top:4px;font-weight:600}
 
 /* ── 등급 토글 ── */
-.lv-group{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
-.lv-btn{padding:7px 0;border-radius:7px;font-weight:800;font-size:12px;min-height:34px;transition:all .15s;border:1px solid transparent;letter-spacing:1px}
-.g-group{display:flex;gap:5px}
-.g-btn{flex:1;padding:9px 0;border-radius:9px;font-weight:700;font-size:13px;min-height:42px;transition:all .15s;border:1px solid transparent}
+.lv-group{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+.lv-btn{padding:9px 0;border-radius:var(--r-s);font-weight:800;font-size:var(--fs-sm);
+  min-height:40px;transition:all .15s;border:1px solid transparent}
+.g-group{display:flex;gap:6px}
+.g-btn{flex:1;padding:10px 0;border-radius:var(--r-m);font-weight:700;
+  font-size:var(--fs-md);min-height:var(--tap);transition:all .15s;border:1px solid transparent}
 
 /* ── 명단 ── */
-.roster-item{display:flex;align-items:center;gap:8px;padding:11px 13px;border-radius:12px;
-  background:var(--card);border:1px solid var(--border);margin-bottom:7px;transition:background .15s}
-.roster-item.editing{background:var(--fbox-bg);border-color:var(--lime)}
-.roster-num{width:22px;height:22px;border-radius:50%;background:var(--lime);color:var(--accent-ink);
-  display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
-.roster-info{flex:1;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
-.roster-name{font-weight:700;font-size:14px}
+.roster-item{display:flex;align-items:center;gap:10px;padding:11px 13px;
+  border-radius:var(--r-m);background:var(--surface);border:1px solid var(--line-1);
+  margin-bottom:7px;min-height:56px;transition:border-color .15s,background .15s}
+.roster-item:hover{background:var(--surface-2)}
+.roster-item.editing{background:var(--surface-2);border-color:var(--court)}
+.roster-num{width:24px;height:24px;border-radius:7px;background:var(--surface-2);
+  color:var(--ink-3);display:flex;align-items:center;justify-content:center;
+  font-size:var(--fs-xs);font-weight:700;flex-shrink:0;font-variant-numeric:tabular-nums}
+.roster-info{flex:1;display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.roster-name{font-weight:700;font-size:var(--fs-md)}
 .roster-actions{display:flex;gap:4px;flex-shrink:0}
-.icon-btn{background:transparent;padding:4px 7px;border-radius:7px;font-size:14px;color:var(--muted);border:1px solid var(--border)}
-.edit-form{display:flex;flex-direction:column;gap:7px;flex:1}
+.icon-btn{background:transparent;padding:0;width:38px;height:38px;border-radius:var(--r-s);
+  font-size:15px;color:var(--ink-3);border:1px solid var(--line-1);
+  display:inline-flex;align-items:center;justify-content:center;transition:all .15s}
+.icon-btn:hover{border-color:var(--court);color:var(--court)}
+.edit-form{display:flex;flex-direction:column;gap:8px;flex:1}
 
 /* ── 참석자 선택 ── */
-.attend-item{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:12px;
-  background:var(--card);border:1px solid var(--border);margin-bottom:7px;transition:all .15s;cursor:pointer}
-.attend-item.selected{background:var(--tab-active);border-color:var(--lime)}
-.attend-item.standby-mark{border-color:var(--warn);background:rgba(241,160,53,.08)}
-.chk-box{width:22px;height:22px;border-radius:6px;border:2px solid var(--border);
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;font-size:13px}
-.chk-box.on{background:var(--lime);border-color:var(--lime);color:var(--accent-ink)}
-.attend-info{flex:1}
-.attend-name{font-weight:700;font-size:14px;margin-bottom:2px}
+.attend-item{display:flex;align-items:center;gap:11px;padding:11px 13px;
+  border-radius:var(--r-m);background:var(--surface);border:1.5px solid var(--line-1);
+  margin-bottom:7px;min-height:58px;transition:all .15s;cursor:pointer}
+.attend-item:hover{border-color:var(--ink-3)}
+.attend-item.selected{background:var(--court-soft);border-color:var(--court)}
+.attend-item.standby-mark{border-color:var(--shuttle);background:var(--shuttle-soft)}
+.chk-box{width:24px;height:24px;border-radius:7px;border:2px solid var(--line-1);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  transition:all .15s;font-size:14px}
+.chk-box.on{background:var(--court);border-color:var(--court);color:var(--court-ink)}
+.attend-info{flex:1;min-width:0}
+.attend-name{font-weight:700;font-size:var(--fs-md);margin-bottom:3px}
 .attend-badges{display:flex;gap:4px;flex-wrap:wrap}
-.select-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.select-count{font-size:13px;color:var(--muted)}
-.select-all-btn{font-size:12px;font-weight:700;color:var(--lime);background:transparent;padding:4px 8px;border-radius:8px;border:1px solid var(--border)}
+/* 넓은 화면에서 한 줄이 너무 길어지지 않게 */
+.attend-grid{display:grid;gap:7px;grid-template-columns:repeat(auto-fill,minmax(248px,1fr))}
+.attend-grid .attend-item{margin-bottom:0}
+.narrow{max-width:700px;margin-left:auto;margin-right:auto}
+.num-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:420px}
 
-/* ── 팀 구성 ── */
-.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
-.mbtn{padding:10px 11px;border-radius:11px;text-align:left;min-height:54px;
-  transition:all .15s;border:1px solid var(--border);background:var(--mode-bg);color:var(--muted);cursor:pointer;width:100%}
-.mbtn.active{background:var(--tab-active);border-color:var(--lime);color:var(--lime)}
-.mbtn-lbl{font-weight:700;font-size:12px;margin-bottom:2px}
-.mbtn-desc{font-size:10px;opacity:.7}
-.tcard{padding:11px 14px;border-radius:12px;background:var(--card);border:1px solid var(--border);margin-bottom:7px}
-.tdot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--accent-ink);font-weight:700;font-size:11px;flex-shrink:0}
+.select-bar{display:flex;align-items:center;justify-content:space-between;
+  gap:8px;margin-bottom:10px}
+.select-count{font-size:var(--fs-sm);color:var(--ink-2);font-weight:600}
+.select-all-btn{font-size:var(--fs-sm);font-weight:700;color:var(--court);
+  background:transparent;padding:8px 12px;min-height:38px;border-radius:var(--r-s);
+  border:1px solid var(--line-1);transition:all .15s}
+.select-all-btn:hover{border-color:var(--court);background:var(--court-soft)}
+
+/* ── 팀 구성 방식 ── */
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px}
+.mbtn{padding:11px 12px;border-radius:var(--r-m);text-align:left;min-height:58px;
+  transition:all .15s;border:1.5px solid var(--line-1);background:var(--surface);
+  color:var(--ink-2);width:100%}
+.mbtn:hover{border-color:var(--ink-3)}
+.mbtn.active{background:var(--court-soft);border-color:var(--court);color:var(--court)}
+.mbtn-lbl{font-weight:700;font-size:var(--fs-sm);margin-bottom:2px}
+.mbtn-desc{font-size:var(--fs-xs);opacity:.75;font-weight:500}
+.tcard{padding:12px 14px;border-radius:var(--r-m);background:var(--surface);
+  border:1px solid var(--line-1);margin-bottom:8px}
+.tdot{width:28px;height:28px;border-radius:9px;display:flex;align-items:center;
+  justify-content:center;color:var(--court-ink);font-weight:800;
+  font-size:var(--fs-xs);flex-shrink:0}
 .lgroup{display:flex;gap:6px;margin-bottom:12px}
-.lbtn{flex:1;padding:11px 0;border-radius:10px;font-weight:700;font-size:16px;min-height:46px;transition:all .15s;border:1px solid transparent}
-.lbtn.active{background:var(--lime);color:var(--accent-ink)}
-.lbtn.idle{background:var(--card);border:1px solid var(--border);color:var(--muted)}
+.lbtn{flex:1;padding:12px 0;border-radius:var(--r-m);font-weight:700;
+  font-size:var(--fs-lg);min-height:var(--tap);transition:all .15s;border:1px solid transparent}
+.lbtn.active{background:var(--court);color:var(--court-ink)}
+.lbtn.idle{background:var(--surface);border:1px solid var(--line-1);color:var(--ink-2)}
 
-/* ── 대진표 ── */
-.mcard{border-radius:14px;overflow:hidden;border:1px solid var(--border);background:var(--card);margin-bottom:10px;box-shadow:var(--shadow);transition:all .2s}
-.mcard:active{transform:scale(.98)}
-.mbody{padding:16px 18px;display:flex;align-items:center;gap:7px}
-.mteam{flex:1;min-width:0}
-.mteam.r{text-align:right}
-.mname{font-weight:700;font-size:15px;margin-bottom:5px;color:var(--white);line-height:1.3}
-.mcenter{text-align:center;min-width:48px;flex-shrink:0}
-.set-divider{display:flex;align-items:center;gap:8px;margin:18px 0 10px}
-.set-divider-line{flex:1;height:1px;background:var(--border)}
-.set-divider-label{font-family:'Archivo',sans-serif;font-weight:800;font-size:13px;letter-spacing:0;color:var(--lime);white-space:nowrap;background:var(--bg);padding:0 6px}
+/* ══════════════════════════════════════════════════════════════════
+   대진표 — 코트 카드
+   위에서 내려다본 배드민턴 코트. 가운데 세로 점선이 네트이고,
+   점수는 각자 자기 진영 아래에 놓여 누구 점수인지 헷갈리지 않는다.
+   ══════════════════════════════════════════════════════════════════ */
+.court-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+
+.mcard{border-radius:var(--r-l);overflow:hidden;background:var(--surface);
+  border:1px solid var(--line-1);box-shadow:var(--shadow-1);
+  transition:border-color .15s,box-shadow .15s,opacity .2s}
+.mcard.live{border-color:var(--shuttle);box-shadow:0 0 0 3px var(--shuttle-soft)}
+.mcard.decided{border-color:var(--court)}
+
+.court-top{display:flex;align-items:center;gap:6px;padding:8px 12px;
+  border-bottom:1px solid var(--line-2);background:var(--surface-2)}
+.court-no{font-weight:800;font-size:var(--fs-xs);display:inline-flex;align-items:center;gap:6px}
+.court-dot{width:9px;height:9px;border-radius:3px;flex-shrink:0}
+.court-state{margin-left:auto;font-size:var(--fs-xs);font-weight:700;color:var(--ink-3)}
+.court-state.live{color:var(--shuttle)}
+.court-state.won{color:var(--court)}
+
+/* 코트 바닥 — 가운데 세로 점선이 네트 */
+.mbody{position:relative;display:grid;grid-template-columns:1fr 1fr;
+  padding:13px 12px 9px;gap:8px}
+.mbody::before{content:'';position:absolute;left:50%;top:8px;bottom:0;
+  border-left:2px dashed var(--net);transform:translateX(-50%);pointer-events:none}
+.mteam{min-width:0;display:flex;flex-direction:column;gap:2px;
+  padding:4px 8px 4px 4px;border-radius:var(--r-s);transition:background .2s}
+.mteam.r{text-align:right;padding:4px 4px 4px 8px}
+.mteam.won{background:var(--court-soft)}
+.mname{font-weight:700;font-size:var(--fs-lg);color:var(--ink-1);line-height:1.25;
+  letter-spacing:-.025em;word-break:keep-all;overflow-wrap:anywhere;
+  min-height:36px;display:flex;align-items:center}
+.mteam.r .mname{justify-content:flex-end}
+.mteam.won .mname{color:var(--court)}
+
+/* 네트 위의 점수 — 각 팀 바로 아래 칸 */
+.score-row{position:relative;display:grid;grid-template-columns:1fr auto 1fr;
+  align-items:center;gap:6px;padding:4px 12px 11px}
+.score-row::before{content:'';position:absolute;left:50%;top:0;bottom:12px;
+  border-left:2px dashed var(--net);transform:translateX(-50%);pointer-events:none}
+.score-cell{display:flex;justify-content:flex-end}
+.score-cell.r{justify-content:flex-start}
+.score-in{width:62px;height:46px;border-radius:var(--r-m);background:var(--surface-2);
+  border:1.5px solid var(--line-1);color:var(--ink-1);
+  font-family:var(--font-num);font-size:var(--fs-xl);font-weight:700;
+  text-align:center;font-variant-numeric:tabular-nums;outline:none;
+  transition:border-color .15s,box-shadow .15s,background .15s,color .15s}
+.score-in::placeholder{color:var(--ink-3);font-weight:600;font-size:var(--fs-md)}
+.score-in:focus{border-color:var(--court);background:var(--surface);
+  box-shadow:0 0 0 3px var(--ring)}
+.score-in.win{border-color:var(--court);color:var(--court);background:var(--court-soft)}
+.score-sep{font-size:var(--fs-sm);font-weight:800;color:var(--ink-3)}
+
+/* 코트 발치 — 상태 버튼 */
+.court-foot{display:flex;gap:6px;padding:0 10px 10px}
+.cbtn{flex:1;min-height:38px;padding:8px 6px;border-radius:var(--r-s);
+  font-size:var(--fs-xs);font-weight:700;color:var(--ink-3);
+  border:1px solid var(--line-1);background:var(--surface);transition:all .15s}
+.cbtn:hover{border-color:var(--ink-3);color:var(--ink-2)}
+.cbtn.on{background:var(--court-soft);border-color:var(--court);color:var(--court)}
+.cbtn.warn{color:var(--shuttle);border-color:var(--shuttle);background:var(--shuttle-soft)}
+.cbtn.del{flex:0 0 46px;color:var(--flag)}
+.cbtn.del:hover{border-color:var(--flag);color:var(--flag)}
+
+/* 선수 이름 눌러서 자리 바꾸기 */
+.pswap{border-radius:7px;padding:2px 5px;margin:0 -5px;cursor:pointer;transition:background .12s}
+.pswap:hover{background:var(--surface-2)}
+.pswap.sel{background:var(--court);color:var(--court-ink)}
+
+/* 게임 구분선 */
+.set-divider{display:flex;align-items:center;gap:10px;margin:22px 0 11px}
+.set-divider-line{flex:1;height:1px;background:var(--line-1)}
+.set-divider-label{font-weight:800;font-size:var(--fs-sm);color:var(--ink-2);white-space:nowrap}
 
 /* ── 알림/토스트 ── */
-.notice{display:flex;align-items:flex-start;gap:9px;padding:10px 13px;border-radius:11px;margin-bottom:10px}
-.notice .ni{font-size:18px;flex-shrink:0;margin-top:1px}
-.notice .nt{font-weight:700;font-size:13px}
-.notice .ns{font-size:11px;color:var(--muted);margin-top:2px}
-#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(16px);
-  background:rgba(0,0,0,.82);color:#fff;padding:9px 18px;border-radius:18px;
-  font-size:13px;font-weight:600;opacity:0;transition:all .3s;pointer-events:none;z-index:999;white-space:nowrap}
+.notice{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;
+  border-radius:var(--r-m);margin-bottom:10px}
+.notice .ni{font-size:17px;flex-shrink:0;line-height:1.3}
+.notice .nt{font-weight:700;font-size:var(--fs-sm)}
+.notice .ns{font-size:var(--fs-xs);color:var(--ink-2);margin-top:3px;line-height:1.5}
+#toast{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));left:50%;
+  transform:translateX(-50%) translateY(14px);
+  background:var(--ink-1);color:var(--paper);padding:11px 20px;border-radius:999px;
+  font-size:var(--fs-sm);font-weight:700;opacity:0;transition:all .25s ease;
+  pointer-events:none;z-index:999;max-width:calc(100vw - 32px);text-align:center;
+  box-shadow:var(--shadow-2)}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* ── 등급 안내 ── */
-.grade-guide{margin-top:10px;border-top:1px solid var(--border);padding-top:10px;display:flex;flex-direction:column;gap:7px}
-.grade-card{padding:10px 12px;border-radius:10px}
-.grade-card-header{display:flex;align-items:center;gap:7px;margin-bottom:5px}
-.grade-key{font-weight:800;font-size:14px;padding:2px 9px;border-radius:7px}
-.grade-short{font-weight:700;font-size:12px}
-.grade-desc{font-size:11px;color:var(--muted);margin-bottom:4px}
-.grade-ul{padding-left:13px;display:flex;flex-direction:column;gap:2px}
-.grade-li{font-size:11px}
+.grade-guide{margin-top:12px;border-top:1px solid var(--line-1);padding-top:12px;
+  display:grid;gap:8px}
+@media(min-width:720px){ .grade-guide{grid-template-columns:1fr 1fr} }
+.grade-card{padding:11px 13px;border-radius:var(--r-m)}
+.grade-card-header{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.grade-key{font-weight:800;font-size:var(--fs-md);padding:2px 10px;border-radius:8px}
+.grade-short{font-weight:700;font-size:var(--fs-sm)}
+.grade-desc{font-size:var(--fs-xs);color:var(--ink-2);margin-bottom:5px}
+.grade-ul{padding-left:15px;display:flex;flex-direction:column;gap:3px}
+.grade-li{font-size:var(--fs-xs);line-height:1.5}
 
 /* ── 빈 상태 ── */
-.empty{text-align:center;padding:40px 20px;color:var(--muted)}
-.empty-icon{font-size:40px;margin-bottom:10px}
-.empty-txt{font-size:14px}
-.empty-sub{font-size:12px;margin-top:4px;opacity:.7}
+.empty{text-align:center;padding:44px 20px;color:var(--ink-2)}
+.empty-icon{font-size:38px;margin-bottom:12px;opacity:.85}
+.empty-txt{font-size:var(--fs-md);font-weight:700;color:var(--ink-1)}
+.empty-sub{font-size:var(--fs-sm);margin-top:6px;color:var(--ink-3)}
 
-/* ── 점수 입력 ── */
-.score-row{border-top:1px solid var(--border);padding:5px 8px;display:flex;align-items:center;justify-content:center;gap:5px}
-.score-in{width:32px;padding:3px 0;border-radius:7px;background:var(--input-bg);border:1px solid var(--border);
-  color:var(--white);font-size:14px;font-weight:800;text-align:center;outline:none}
-.score-in:focus{border-color:var(--lime);box-shadow:0 0 0 2px var(--lime-soft)}
-.score-sep{font-size:12px;font-weight:800;color:var(--muted)}
-.win-lbl{font-size:10px;font-weight:800;color:var(--lime);min-width:30px}
-.mteam.won .mname{color:var(--lime)}
+.win-lbl{font-size:var(--fs-xs);font-weight:800;color:var(--court)}
 
 /* ── 공평성 ── */
-.fair-row{display:flex;align-items:center;gap:8px;padding:4px 0}
-.fair-name{width:60px;flex-shrink:0;font-size:12px;font-weight:700;color:var(--white);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.fair-bar{flex:1;height:15px;border-radius:8px;background:var(--fbox-bg);overflow:hidden;min-width:40px}
-.fair-fill{height:100%;border-radius:8px;transition:width .3s}
-.fair-num{width:74px;flex-shrink:0;text-align:right;font-size:11px;color:var(--muted);
-  font-variant-numeric:tabular-nums;white-space:nowrap}
+.fair-row{display:flex;align-items:center;gap:10px;padding:5px 0}
+.fair-name{width:62px;flex-shrink:0;font-size:var(--fs-sm);font-weight:700;
+  color:var(--ink-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fair-bar{flex:1;height:16px;border-radius:999px;background:var(--surface-2);
+  overflow:hidden;min-width:36px}
+.fair-fill{height:100%;border-radius:999px;transition:width .4s ease}
+.fair-num{flex-shrink:0;text-align:right;font-size:var(--fs-xs);color:var(--ink-2);
+  font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600}
 
 /* ── 전적표 ── */
-.rec-head,.rec-row{display:grid;grid-template-columns:24px 1fr 34px 34px 46px 44px;gap:3px;align-items:center;
-  padding:8px 4px;font-size:12px}
-.rec-head{font-size:10px;color:var(--muted);border-bottom:1px solid var(--border);font-weight:700}
-.rec-row{border-bottom:1px solid var(--border)}
+.rec-head,.rec-row{display:grid;
+  grid-template-columns:28px minmax(0,1fr) 38px 38px 52px 48px;
+  gap:4px;align-items:center;padding:10px 6px;font-size:var(--fs-sm)}
+.rec-head{font-size:var(--fs-xs);color:var(--ink-3);font-weight:700;
+  border-bottom:1px solid var(--line-1)}
+.rec-row{border-bottom:1px solid var(--line-2)}
 .rec-row:last-child{border-bottom:none}
-.rec-rank{font-weight:800;font-size:11px;color:var(--muted);text-align:center}
-.rec-name{font-weight:700;color:var(--white);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rec-num{text-align:center;font-variant-numeric:tabular-nums;color:var(--white)}
-.seg{display:flex;gap:6px;margin-bottom:12px}
-.seg-btn{flex:1;padding:9px 0;border-radius:10px;font-weight:700;font-size:13px;min-height:40px;
-  background:var(--card);border:1px solid var(--border);color:var(--muted)}
-.seg-btn.active{background:var(--tab-active);border-color:var(--lime);color:var(--lime)}
+.rec-rank{font-weight:800;font-size:var(--fs-sm);color:var(--ink-3);text-align:center}
+.rec-name{font-weight:700;font-size:var(--fs-md);color:var(--ink-1);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rec-num{text-align:center;font-variant-numeric:tabular-nums;
+  font-family:var(--font-num);font-weight:700;color:var(--ink-1)}
+
+/* ── 세그먼트 토글 ── */
+.seg{display:flex;gap:4px;margin-bottom:14px;padding:4px;
+  background:var(--surface-2);border-radius:var(--r-m)}
+.seg-btn{flex:1;padding:9px 0;border-radius:var(--r-s);font-weight:700;
+  font-size:var(--fs-sm);min-height:40px;background:transparent;color:var(--ink-2);
+  transition:all .15s}
+.seg-btn:hover{color:var(--ink-1)}
+.seg-btn.active{background:var(--surface);color:var(--court);box-shadow:var(--shadow-1)}
 
 /* ── 프린트 ── */
 #print-area{display:none;}
@@ -314,7 +516,8 @@ var S={
   recView:'today',  // 'today'=오늘 전적 | 'career'=누적 전적
   career:{},        // {이름:{w,l,g,pf,pa}} — 누적 전적 (Firebase 'stats')
   statsSaved:false, // 오늘 전적을 누적에 반영했는지 (중복 반영 방지)
-  showFair:true,    // 공평성 패널 펼침 여부
+  showFair:false,   // 공평성 패널 펼침 여부 (기본은 접어두고 요약 배지만)
+  setupOpen:false,  // 좁은 화면에서 대진표 설정 펼침 여부
   // ── 토너먼트 모드 ──
   tSelected:{},   // {이름:true} 토너먼트 참석자
   tTeams:[],      // [{id, p1, p2, name}] 2인 팀
@@ -1561,8 +1764,10 @@ function rosterHtml(){
   var addStyle=canAdd?'background:var(--lime);color:var(--accent-ink)':'background:var(--card);border:1px solid var(--border);color:var(--muted)';
 
   var out='';
+  // 넓은 화면에서는 등록 폼을 왼쪽 레일로 (입력칸이 화면 폭만큼 늘어나지 않도록)
+  out+='<div class="m-layout"><div class="m-rail">';
   // 추가 폼
-  out+='<div class="card">'
+  out+='<div class="card" style="margin-bottom:0">'
     +'<div class="ttl">명단 관리</div>'
     +'<div class="sub">전체 회원을 미리 등록해두세요</div>'
     +'<div class="lbl">이름</div>'
@@ -1584,9 +1789,11 @@ function rosterHtml(){
     +'<button class="btn" data-a="radd" style="width:100%;'+addStyle+'" '+(canAdd?'':'disabled')+'>+ 추가</button>'
     +'</div>';
 
+  out+='</div><div class="m-main">';
+
   // 명단 목록
   if(S.roster.length===0){
-    out+='<div class="empty"><div class="empty-icon">👥</div><div class="empty-txt">아직 등록된 회원이 없어요</div><div class="empty-sub">위에서 추가해보세요</div></div>';
+    out+='<div class="card"><div class="empty"><div class="empty-icon">👥</div><div class="empty-txt">아직 등록된 회원이 없어요</div><div class="empty-sub">왼쪽에서 이름·성별·등급을 넣고 추가하세요</div></div></div>';
   } else {
     var rq=(S.rSearch||'').trim().toLowerCase();
     var rFiltered=rq?S.roster.filter(function(p){return p.name.toLowerCase().indexOf(rq)!==-1;}):S.roster;
@@ -1649,7 +1856,7 @@ function rosterHtml(){
     out+='</div>'; // roster-list-body
     out+='</div>'; // card
   }
-  return out;
+  return out+'</div></div>'; // m-main, m-layout
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1688,17 +1895,17 @@ function mStep1Html(){
 
   var out='<div class="ttl">오늘 참석자</div>'
     // ── 코트·게임 설정 카드 ──
-    +'<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px">'
-      +'<div style="display:flex;gap:10px">'
+    +'<div style="background:var(--surface-2);border-radius:var(--r-m);padding:14px;margin-bottom:14px">'
+      +'<div class="num-row">'
         // 코트 수
-        +'<div style="flex:1">'
-          +'<div class="lbl" style="margin-bottom:5px">🏟️ 코트 수</div>'
-          +'<input id="inp-nc" class="inp" type="number" min="1" max="10" inputmode="numeric" placeholder="코트 수 입력" value="'+(S.numCourts>0?S.numCourts:'')+'" style="padding:10px;font-size:18px;font-weight:700;text-align:center">'
+        +'<div>'
+          +'<div class="lbl">🏟️ 코트 수</div>'
+          +'<input id="inp-nc" class="inp" type="number" min="1" max="10" inputmode="numeric" placeholder="몇 코트?" value="'+(S.numCourts>0?S.numCourts:'')+'" style="font-size:var(--fs-xl);font-weight:800;text-align:center">'
         +'</div>'
         // 게임 수
-        +'<div style="flex:1">'
-          +'<div class="lbl" style="margin-bottom:5px">🎮 게임 수</div>'
-          +'<input id="inp-ng" class="inp" type="number" min="1" inputmode="numeric" placeholder="게임 수 입력" value="'+(S.numGames>0?S.numGames:'')+'" style="padding:10px;font-size:18px;font-weight:700;text-align:center">'
+        +'<div>'
+          +'<div class="lbl">🎮 게임 수</div>'
+          +'<input id="inp-ng" class="inp" type="number" min="1" inputmode="numeric" placeholder="몇 게임?" value="'+(S.numGames>0?S.numGames:'')+'" style="font-size:var(--fs-xl);font-weight:800;text-align:center">'
         +'</div>'
       +'</div>'
     +'</div>'
@@ -1737,7 +1944,7 @@ function mStep1Html(){
     +courtSummary;
 
   // ── 참석자 목록 ──
-  out+='<div id="attend-list-body">';
+  out+='<div id="attend-list-body" class="attend-grid">';
   if(filtered.length===0){
     out+='<div style="text-align:center;padding:24px;color:var(--muted);font-size:14px">\''+q+'\' 검색 결과가 없어요</div>';
   } else {
@@ -2012,22 +2219,29 @@ function refreshMatchCard(id){
   for(var i=0;i<S.matches.length;i++) if(S.matches[i].id===id){m=S.matches[i];break;}
   if(!m) return;
 
-  var w=matchWinner(m),cc=card.getAttribute('data-cc')||'var(--lime)';
-  var lab=card.querySelector('.win-lbl');
-  if(lab) lab.textContent=w==='a'?'◀ 승':w==='b'?'승 ▶':'';
+  var w=matchWinner(m);
 
+  // 이긴 쪽 진영에 색을 입힌다
   var teams=card.querySelectorAll('.mteam');
   if(teams.length===2){
     teams[0].classList.toggle('won',w==='a');
     teams[1].classList.toggle('won',w==='b');
   }
-  var ctr=card.querySelector('.mcenter div');
-  if(ctr){
-    ctr.textContent=w?'🏆':'VS';
-    ctr.style.color=w?'var(--lime)':(m.inProgress?cc:'var(--muted)');
+  // 이긴 쪽 점수 칸 강조
+  var ins=card.querySelectorAll('.score-in');
+  if(ins.length===2){
+    ins[0].classList.toggle('win',w==='a');
+    ins[1].classList.toggle('win',w==='b');
   }
-  card.style.borderLeftColor=w?'var(--lime)':(m.done?'rgba(255,255,255,.1)':cc);
-  card.style.opacity=(m.done&&!w)?'.5':'1';
+  // 코트 머리의 상태 문구
+  var st=card.querySelector('.court-state');
+  if(st){
+    st.textContent=w?'끝':m.inProgress?'경기 중':m.done?'완료':'';
+    st.className='court-state'+(w?' won':m.inProgress?' live':'');
+  }
+  card.classList.toggle('decided',!!w);
+  card.classList.toggle('live',!w&&!!m.inProgress);
+  card.style.opacity=(m.done&&!w)?'.62':'';
 
   // "전적 보기" 버튼의 입력 건수도 함께 갱신
   var cnt=document.getElementById('scored-cnt');
@@ -2171,68 +2385,72 @@ function mStep2Html(){
       +'<span class="set-divider-label">게임 '+bn+sbLabel+dupLabel+'</span>'
       +'<div class="set-divider-line"></div></div>';
 
-    // 코트 가로 배치 (화면 너비가 코트 수에 맞춰 넓어지므로 grid로 균등 배치)
-    mCards+='<div style="display:grid;grid-template-columns:repeat('+ncols+',1fr);gap:8px;margin-bottom:4px">';
+    // 코트를 나란히 — 칸 너비는 CSS auto-fit이 화면에 맞춰 정한다
+    // (폰 1열 → 태블릿 2~3열 → 데스크탑 코트 수만큼)
+    mCards+='<div class="court-grid">';
     for(var ci=0;ci<courtIds.length;ci++){
       var cid=parseInt(courtIds[ci]);
       var cc=COURT_COLORS[(cid-1)%COURT_COLORS.length];
       var courtMs=setData[courtIds[ci]];
-      mCards+='<div>';
-      // 코트 헤더 (2개 이상일 때)
-      if(ncols>1){
-        mCards+='<div style="text-align:center;padding:3px;border-radius:8px 8px 0 0;background:'+cc+'22;border:1px solid '+cc+'44;border-bottom:none;font-size:11px;font-weight:800;color:'+cc+'">'+cid+'코트</div>';
-      }
       for(var mi=0;mi<courtMs.length;mi++){
         var mObj=courtMs[mi],mt=mObj.m,mt1=mObj.t1,mt2=mObj.t2;
         var isDone=!!mt.done,isIP=!!mt.inProgress;
         var win=matchWinner(mt);
         var s1v=(mt.s1===0||mt.s1)?mt.s1:'';
         var s2v=(mt.s2===0||mt.s2)?mt.s2:'';
-        var scoreRow='<div class="score-row">'
-          +'<input class="score-in m-score" type="number" inputmode="numeric" min="0" '
-            +'data-id="'+mt.id+'" data-s="1" value="'+s1v+'" aria-label="왼쪽 팀 점수">'
-          +'<span class="score-sep">:</span>'
-          +'<input class="score-in m-score" type="number" inputmode="numeric" min="0" '
-            +'data-id="'+mt.id+'" data-s="2" value="'+s2v+'" aria-label="오른쪽 팀 점수">'
-          +'<span class="win-lbl" id="wl-'+mt.id+'">'+(win==='a'?'◀ 승':win==='b'?'승 ▶':'')+'</span>'
+
+        // 코트 머리 — 코트 번호와 현재 상태
+        var stateTxt=win?'끝':isIP?'경기 중':isDone?'완료':'';
+        var stateCls=win?' won':isIP?' live':'';
+        var topRow='<div class="court-top">'
+          +'<span class="court-no" style="color:'+cc+'">'
+            +'<span class="court-dot" style="background:'+cc+'"></span>'+cid+'코트</span>'
+          +'<span class="court-state'+stateCls+'">'+stateTxt+'</span>'
           +'</div>';
-        var statusRow='';
-        if(isDone){
-          statusRow='<div style="border-top:1px solid var(--border);padding:4px 8px;display:flex;justify-content:space-between;align-items:center">'
-            +'<span style="font-size:10px;color:var(--muted)">✓ 완료</span>'
-            +'<button data-a="delMatch" data-id="'+mt.id+'" style="font-size:10px;color:var(--red);background:transparent;padding:1px 6px;border:1px solid rgba(241,85,85,.3);border-radius:5px">🗑 삭제</button>'
-            +'</div>';
-        } else if(isIP){
-          statusRow='<div style="border-top:1px solid var(--border);padding:4px 8px;display:flex;justify-content:space-between;align-items:center">'
-            +'<span style="font-size:10px;font-weight:700;color:'+cc+'">🏸 진행 중</span>'
-            +'<button data-a="doneMatch" data-id="'+mt.id+'" style="font-size:10px;color:var(--lime);background:transparent;padding:1px 6px;border:1px solid var(--border);border-radius:5px">✓ 완료</button>'
-            +'</div>';
-        } else {
-          statusRow='<div style="border-top:1px solid var(--border);padding:4px 8px;display:flex;justify-content:space-between">'
-            +'<button data-a="ipMatch" data-id="'+mt.id+'" style="font-size:10px;color:var(--muted);background:transparent;padding:1px 6px;border:1px solid var(--border);border-radius:5px">▶ 진행 중</button>'
-            +'<button data-a="doneMatch" data-id="'+mt.id+'" style="font-size:10px;color:var(--muted);background:transparent;padding:1px 6px;border:1px solid var(--border);border-radius:5px">✓ 완료</button>'
-            +'</div>';
-        }
+
+        // 점수 — 각 팀 바로 아래 칸에 (누구 점수인지 헷갈리지 않게)
+        var scoreRow='<div class="score-row">'
+          +'<div class="score-cell">'
+            +'<input class="score-in m-score'+(win==='a'?' win':'')+'" type="number" '
+            +'inputmode="numeric" min="0" placeholder="–" '
+            +'data-id="'+mt.id+'" data-s="1" value="'+s1v+'" '
+            +'aria-label="'+mt1.p1.name+'·'+mt1.p2.name+' 점수"></div>'
+          +'<span class="score-sep">:</span>'
+          +'<div class="score-cell r">'
+            +'<input class="score-in m-score'+(win==='b'?' win':'')+'" type="number" '
+            +'inputmode="numeric" min="0" placeholder="–" '
+            +'data-id="'+mt.id+'" data-s="2" value="'+s2v+'" '
+            +'aria-label="'+mt2.p1.name+'·'+mt2.p2.name+' 점수"></div>'
+          +'</div>';
+
+        // 코트 발치 — 상태 버튼
+        var footRow='<div class="court-foot">'
+          +'<button class="cbtn'+(isIP?' warn':'')+'" data-a="ipMatch" data-id="'+mt.id+'">'
+            +(isIP?'🏸 경기 중':'▶ 시작')+'</button>'
+          +'<button class="cbtn'+(isDone?' on':'')+'" data-a="doneMatch" data-id="'+mt.id+'">'
+            +(isDone?'✓ 완료됨':'✓ 완료')+'</button>'
+          +(isDone?'<button class="cbtn del" data-a="delMatch" data-id="'+mt.id+'" '
+            +'aria-label="이 경기 지우기">🗑</button>':'')
+          +'</div>';
+
         function pcell(pl,tid,slot){
           var key=tid+'_'+slot;
           var sel=(S.swapSel===key);
-          var selStyle=sel?'background:var(--lime);color:var(--accent-ink);':'';
-          return '<div class="mname pswap'+(sel?' sel':'')+'" data-a="swapPick" data-k="'+key+'" draggable="true" data-drag="'+key+'" style="font-size:13px;border-radius:6px;padding:1px 5px;cursor:pointer;word-break:break-all;line-height:1.3;'+selStyle+'">'+pl.name+'</div>';
+          return '<div class="mname pswap'+(sel?' sel':'')+'" data-a="swapPick" data-k="'+key+'" '
+            +'draggable="true" data-drag="'+key+'" title="눌러서 자리 바꾸기">'+pl.name+'</div>';
         }
-        // 결과가 입력된 경기는 승리 팀을 강조하고, 카드는 흐리게 처리하지 않음
-        var cardBd=win?'var(--lime)':(isDone?'rgba(255,255,255,.1)':cc);
-        var cardOp=(isDone&&!win)?'.5':'1';
-        mCards+='<div class="mcard" data-mid="'+mt.id+'" data-cc="'+cc+'" style="border-left:3px solid '+cardBd+';margin-bottom:6px;opacity:'+cardOp+'">'
-          +'<div class="mbody" style="padding:10px 10px 6px">'
+        var cardCls='mcard'+(win?' decided':isIP?' live':'');
+        mCards+='<div class="'+cardCls+'" data-mid="'+mt.id+'" data-cc="'+cc+'"'
+          +(isDone&&!win?' style="opacity:.62"':'')+'>'
+          +topRow
+          +'<div class="mbody">'
             +'<div class="mteam'+(win==='a'?' won':'')+'">'+pcell(mt1.p1,mt1.id,'p1')+pcell(mt1.p2,mt1.id,'p2')+'</div>'
-            +'<div class="mcenter"><div style="font-size:11px;font-weight:700;color:'+(win?'var(--lime)':isIP?cc:'var(--muted)')+'">'+(win?'🏆':'VS')+'</div></div>'
             +'<div class="mteam r'+(win==='b'?' won':'')+'">'+pcell(mt2.p1,mt2.id,'p1')+pcell(mt2.p2,mt2.id,'p2')+'</div>'
           +'</div>'
           +scoreRow
-          +statusRow
+          +footRow
           +'</div>';
       }
-      mCards+='</div>';
     }
     mCards+='</div>';
   }
@@ -2282,58 +2500,94 @@ function mStep2Html(){
     lateArrivalsPanel+='</div>';
   }
 
-  return'<div class="ttl" style="margin-bottom:10px">대진표</div>'
-    +'<div class="lbl" style="margin-bottom:5px">팀 구성 방식</div>'
-    +'<div class="mgrid" style="margin-bottom:10px">'+modeBtns+'</div>'
+  // ── 설정 레일 (넓은 화면에서 왼쪽 고정) ──
+  // 대진표가 만들어지면 좁은 화면에서는 접어둔다 — 대진표가 주인공
+  var setupOpen=!hasMatches||S.setupOpen;
+  var curMode=MODES[0];
+  for(var mmi=0;mmi<MODES.length;mmi++) if(MODES[mmi].key===S.pairMode) curMode=MODES[mmi];
+  var railSum=curMode.lb+' · '+(S.numCourts||1)+'코트 '+(S.numGames||0)+'게임';
+
+  var rail='<div class="card" style="margin-bottom:0">'
+    +(hasMatches
+      ?'<div class="ttl rail-title" style="margin-bottom:12px">대진표</div>'
+       +'<button class="rail-toggle" data-a="togsetup" aria-expanded="'+(setupOpen?'true':'false')+'">'
+         +'<span>⚙️ 대진표 설정</span>'
+         +'<span class="rt-sum">'+railSum+' '+(setupOpen?'▲':'▼')+'</span>'
+       +'</button>'
+      :'<div class="ttl" style="margin-bottom:12px">대진표</div>')
+    +'<div class="rail-body'+(setupOpen?'':' closed')+'">'
+    +'<div class="lbl">팀 구성 방식</div>'
+    +'<div class="mgrid">'+modeBtns+'</div>'
     +cycleNtc
     +groupModeHtml
-    +'<button class="btn pri" data-a="genmatches" style="width:100%;margin-bottom:12px;font-size:15px;padding:13px">🏸 대진표 작성</button>'
+    +'<button class="btn pri" data-a="genmatches" style="width:100%;margin-bottom:10px">🏸 대진표 작성</button>'
+    +'<div class="brow">'
+      +'<button class="btn gho" data-a="mg1">← 참석자</button>'
+      +(hasMatches?'<button class="btn pri" data-a="mg4">🏆 전적 '
+        +'<span id="scored-cnt" style="font-weight:700;opacity:.85">'
+        +(scoredCount()>0?'('+scoredCount()+')':'')+'</span></button>':'')
+    +'</div>'
     +(hasMatches
-      ?'<div class="brow" style="margin-bottom:12px">'
-         +'<button class="btn suc" data-a="cpr" style="flex:1;font-size:13px">📋 카톡 복사</button>'
-         +'<button class="btn gho" data-a="saveimg" style="flex:1;font-size:13px">🖼️ 이미지 저장</button>'
-         +'<button class="btn gho" onclick="printSchedule()" style="flex:1;font-size:13px">🖨️ 인쇄</button>'
+      ?'<div class="brow" style="margin-top:8px">'
+         +'<button class="btn suc" data-a="cpr" style="flex:1 1 0;min-width:0;padding:12px 6px;font-size:var(--fs-sm);white-space:nowrap">📋 카톡</button>'
+         +'<button class="btn gho" data-a="saveimg" style="flex:1 1 0;min-width:0;padding:12px 6px;font-size:var(--fs-sm);white-space:nowrap">🖼️ 이미지</button>'
+         +'<button class="btn gho" onclick="printSchedule()" style="flex:1 1 0;min-width:0;padding:12px 6px;font-size:var(--fs-sm);white-space:nowrap">🖨️ 인쇄</button>'
        +'</div>'
       :'')
-    +'<div class="brow" style="margin-bottom:16px">'
-      +'<button class="btn gho" data-a="mg1" style="flex:1">← 뒤로</button>'
-      +(hasMatches?'<button class="btn pri" data-a="mg4" style="flex:1">🏆 전적 보기 '
-        +'<span id="scored-cnt" style="font-size:11px;opacity:.8">'+(scoredCount()>0?'('+scoredCount()+')':'')+'</span></button>':'')
     +'</div>'
-    // 늦참 패널 (있을 때만)
-    +lateArrivalsPanel
-    +sbNtc+dupNtc
-    +(hasMatches?'<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;padding:8px 12px;border-radius:10px;background:var(--lime-soft);border:1px solid var(--border);font-size:12px;color:var(--muted)">'
+    +'</div>';
+
+  // ── 대진표 본문 ──
+  var swapHint=hasMatches
+    ?'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:10px 13px;'
+      +'border-radius:var(--r-m);background:var(--court-soft);font-size:var(--fs-xs);color:var(--ink-2)">'
       +(S.swapSel
-        ?'<span style="color:var(--lime);font-weight:700">👆 바꿀 상대를 한 번 더 누르세요</span><button data-a="swapCancel" style="margin-left:auto;font-size:11px;padding:3px 10px;border-radius:7px;border:1px solid var(--border);background:var(--card);color:var(--muted)">취소</button>'
-        :'✋ 선수 이름을 <b style="color:var(--lime)">두 명 차례로 누르면</b> 자리가 바뀌어요 (끌어다 놓기도 가능)')
-      +'</div>':'')
-    +(function(){
+        ?'<span style="color:var(--court);font-weight:700">👆 바꿀 상대를 한 번 더 누르세요</span>'
+          +'<button class="cbtn" data-a="swapCancel" style="margin-left:auto;flex:0 0 auto;padding:6px 12px">취소</button>'
+        :'<span>✋ 선수 이름을 <b style="color:var(--court)">두 명 차례로 누르면</b> 자리가 바뀌어요</span>')
+      +'</div>'
+    :'';
+
+  var streakNtc=(function(){
         if(!hasMatches) return '';
         var st=calcStreaks();
         if(st.playing.length===0&&st.resting.length===0) return '';
-        // 인원이 많으면 이름을 다 늘어놓지 않고 줄여서 (자세한 내용은 아래 공평성 패널)
+        // 인원이 많으면 이름을 다 늘어놓지 않고 줄여서 (자세한 내용은 공평성 패널)
         function nameList(arr){
           if(arr.length<=5) return arr.join(', ');
           return arr.slice(0,5).join(', ')+' 외 '+(arr.length-5)+'명';
         }
         var rows='';
         if(st.playing.length>0){
-          rows+='<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:'+(st.resting.length>0?'6px':'0')+'">'
+          rows+='<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:'+(st.resting.length>0?'6px':'0')+'">'
             +'<span style="flex-shrink:0">🔥</span>'
-            +'<span><b style="color:var(--red)">3게임 연속 출전</b> : '+nameList(st.playing)+'</span>'
+            +'<span><b style="color:var(--flag)">3게임 연속 출전</b> : '+nameList(st.playing)+'</span>'
           +'</div>';
         }
         if(st.resting.length>0){
-          rows+='<div style="display:flex;align-items:flex-start;gap:6px">'
+          rows+='<div style="display:flex;align-items:flex-start;gap:7px">'
             +'<span style="flex-shrink:0">💤</span>'
-            +'<span><b style="color:var(--warn)">3게임 연속 휴식</b> : '+nameList(st.resting)+'</span>'
+            +'<span><b style="color:var(--shuttle)">3게임 연속 휴식</b> : '+nameList(st.resting)+'</span>'
           +'</div>';
         }
-        return '<div style="margin-bottom:8px;padding:10px 12px;border-radius:10px;background:rgba(241,160,53,.12);border:1px solid rgba(241,160,53,.35);font-size:12px;color:var(--white);line-height:1.5">'+rows+'</div>';
-      })()
-    +(hasMatches?fairnessHtml():'')
-    +(hasMatches?'<div style="margin-bottom:14px">'+mCards+'</div>':'');
+        return '<div style="margin-bottom:10px;padding:12px 14px;border-radius:var(--r-m);'
+          +'background:var(--shuttle-soft);font-size:var(--fs-xs);color:var(--ink-1);line-height:1.6">'+rows+'</div>';
+      })();
+
+  var mainEmpty='<div class="card"><div class="empty">'
+    +'<div class="empty-icon">🏸</div>'
+    +'<div class="empty-txt">아직 대진표가 없어요</div>'
+    +'<div class="empty-sub">팀 구성 방식을 고르고 대진표 작성을 누르세요</div>'
+    +'</div></div>';
+
+  var main=hasMatches
+    ? lateArrivalsPanel+sbNtc+dupNtc+swapHint+streakNtc+fairnessHtml()+mCards
+    : lateArrivalsPanel+mainEmpty;
+
+  return '<div class="m-layout">'
+    +'<div class="m-rail">'+rail+'</div>'
+    +'<div class="m-main">'+main+'</div>'
+    +'</div>';
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -2676,30 +2930,26 @@ function render(){
     bodyHtml=rosterHtml();
   } else if(S.tab==='tour'){
     var tContent=(S.tStep===2)?tStep2Html():tStep1Html();
-    bodyHtml='<div class="card">'+tContent+'</div>';
+    bodyHtml='<div class="card'+(S.tStep===2?'':' narrow')+'">'+tContent+'</div>';
   } else {
     var stepContent='';
-    if(S.mStep===1)stepContent=mStep1Html();
-    else if(S.mStep===3)stepContent=mStep3Html();
-    else stepContent=mStep2Html();
-    bodyHtml=stepBar()+'<div class="card">'+stepContent+'</div>';
+    if(S.mStep===1){ bodyHtml=stepBar()+'<div class="card">'+mStep1Html()+'</div>'; }
+    // 전적은 표라서 한 줄이 길어지면 눈이 멀리 가야 한다 — 읽기 좋은 폭으로 묶는다
+    else if(S.mStep===3){ bodyHtml=stepBar()+'<div class="card narrow">'+mStep3Html()+'</div>'; }
+    // 대진표는 자체 2단 레이아웃을 쓰므로 카드로 감싸지 않는다
+    else { bodyHtml=stepBar()+mStep2Html(); }
   }
 
-  // 매치 2단계에서 코트가 많으면 화면 너비 넓히기
-  var wrapWidth=640;
-  if(S.tab==='match'&&S.mStep===2){
-    var courtCount=parseInt(S.numCourts)||1;
-    if(courtCount>=4) wrapWidth=920;
-    else if(courtCount===3) wrapWidth=760;
-  }
-
+  // 화면 폭은 CSS가 처리한다 (.wrap + .court-grid auto-fit)
   document.getElementById('app').innerHTML=
-    '<div class="wrap" style="max-width:'+wrapWidth+'px">'
+    '<div class="wrap">'
     +'<div class="app-header">'
-      +'<div style="font-size:32px;line-height:1.2">⚡🏸⚡</div>'
-      +'<div class="app-title">피카츄의 배드민턴매치</div>'
-      +'<div class="app-sub">동호회 배드민턴 대진표 앱</div>'
-      +'<button class="theme-btn" data-a="thm">'+themeIcon+'</button>'
+      +'<span class="app-mark">⚡🏸</span>'
+      +'<div style="min-width:0">'
+        +'<div class="app-title">피카츄의 배드민턴매치</div>'
+        +'<div class="app-sub">동호회 대진표 · 전적</div>'
+      +'</div>'
+      +'<button class="theme-btn" data-a="thm" aria-label="화면 밝기 바꾸기">'+themeIcon+'</button>'
     +'</div>'
     +'<div class="tabs">'+tabRoster+tabMatch+tabTour+'</div>'
     +'<div class="content">'+bodyHtml+'</div>'
@@ -3206,6 +3456,7 @@ function act(a,d){
       S.matches=mkMatches(S.teams);S.blockInfo=[];
     }
     S.statsSaved=false; // 대진표를 새로 만들면 점수도 초기화되므로 다시 반영 가능
+    S.setupOpen=false;  // 좁은 화면에서 바로 대진표가 보이도록 설정은 접는다
     S.mStep=2;fbSaveSession();render();
   }
   else if(a==='mg3'){S.mStep=2;render();}
@@ -3218,6 +3469,7 @@ function act(a,d){
   }
   else if(a==='recview'){S.recView=d.v;render();}
   else if(a==='togfair'){S.showFair=!S.showFair;render();}
+  else if(a==='togsetup'){S.setupOpen=!S.setupOpen;render();}
   else if(a==='savecareer'){saveCareer();}
   else if(a==='clearcareer'){
     if(!confirm('누적 전적을 전부 삭제할까요?\n(되돌릴 수 없어요)')) return;
@@ -3239,13 +3491,13 @@ function act(a,d){
     } else {
       S.matches=mkMatches(S.teams);S.blockInfo=[];
     }
-    S.statsSaved=false;
+    S.statsSaved=false;S.setupOpen=false;
     S.mStep=2;fbSaveSession();render();
   }
   else if(a==='rst'){
     S.standby=null;S.teams=[];S.matches=[];S.pairMode='random';
     S.history=[];S.round=1;S.dup=false;S.numGames=0;S.numCourts=1;S.matchMode='rotation';S.numRotations=10;S.groups={};S.groupNames=['1그룹','2그룹'];S.playerGroups={};S.restCount={};S.blockInfo=[];S.attendSearch='';S.groupMode='any';S.lateArrivals={};
-    S.statsSaved=false;S.recView='today'; // 누적 전적(S.career)은 유지
+    S.statsSaved=false;S.recView='today';S.setupOpen=false;S.showFair=false; // 누적 전적(S.career)은 유지
     S.mStep=1;
     if(db) db.ref('session').remove(); // Firebase에서 세션 삭제
     render();
