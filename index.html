@@ -283,6 +283,11 @@ input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
    점수는 각자 자기 진영 아래에 놓여 누구 점수인지 헷갈리지 않는다.
    ══════════════════════════════════════════════════════════════════ */
 .court-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+/* 게임 목록 — 공간이 남으면 게임을 가로로 2개씩 놓는다 (최대 2열).
+   --gmin: 게임 하나가 필요한 최소 폭 (코트 수에 따라 JS가 정함) */
+.game-list{display:grid;column-gap:16px;
+  grid-template-columns:repeat(auto-fill,minmax(max(var(--gmin,300px),calc(50% - 8px)),1fr))}
+.game-block{min-width:0}
 
 .mcard{border-radius:var(--r-l);overflow:hidden;background:var(--surface);
   border:1px solid var(--line-1);box-shadow:var(--shadow-1);
@@ -2371,11 +2376,16 @@ function mStep2Html(){
     setsMap[bn][cid].push({m:m,t1:t1x,t2:t2x});
   }
 
+  // 게임 하나에 필요한 최소 폭 — 코트가 많은 게임 기준 (코트 카드 240px + 간격 10px)
+  var maxCt=1;
+  for(var si=0;si<blockOrder.length;si++) maxCt=Math.max(maxCt,Object.keys(setsMap[blockOrder[si]]).length);
+  mCards+='<div class="game-list" style="--gmin:'+Math.max(300,maxCt*240+(maxCt-1)*10)+'px">';
   for(var si=0;si<blockOrder.length;si++){
     var bn=blockOrder[si];
     var setData=setsMap[bn];
     var courtIds=Object.keys(setData).sort(function(a,b){return a-b;});
     var ncols=courtIds.length;
+    mCards+='<div class="game-block">';
 
     // 세트 구분선
     var biObj=null;for(var bi2=0;bi2<S.blockInfo.length;bi2++)if(S.blockInfo[bi2].blockNum===bn){biObj=S.blockInfo[bi2];break;}
@@ -2452,8 +2462,9 @@ function mStep2Html(){
           +'</div>';
       }
     }
-    mCards+='</div>';
+    mCards+='</div></div>'; // court-grid, game-block
   }
+  mCards+='</div>'; // game-list
 
   // ── 늦참 패널 ──
   var latePanel='';
