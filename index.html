@@ -1348,9 +1348,12 @@ function fbCopyUrl(url){var ta=document.createElement('textarea');ta.value=url;t
 // ── 대진표 이미지 생성 ──────────────────────────────────────────────
 function generateResultImage(){
   var ms=S.matches,ts=S.teams;
-  var COURT_COLS=['#1565c0','#c2185b','#2e7d32','#ef6c00','#6a1b9a','#00838f'];
   var KO='"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif';
-  var GREEN='#1f8a4c',INK='#16241c';
+  // 색 — 눈이 편하도록 흰 바탕에 옅은 색만 쓴다
+  var C={bg:'#ffffff',bar:'',title:'#2f6b4f',sub:'#7a857f',
+    card:'#ffffff',cardLine:'#e3e7e4',head:'#f3f5f4',headTxt:'#2f6b4f',line:'#eef0ef',
+    name:'#2b2f2d',vs:'#b0b7b3',foot:'#b8bfbb',
+    courts:['#4a78b5','#b5627c','#5a8f6a','#c08a4a','#8067a8','#4a9aa0']};
 
   // 게임별로 묶기 — 게임 안에서는 코트 번호 순
   var games={},order=[],courtSet={},players={};
@@ -1383,7 +1386,7 @@ function generateResultImage(){
     var gl=games[order[oi]];
     for(var li=0;li<gl.length;li++){
       [gl[li].t1,gl[li].t2].forEach(function(t){
-        ctx.font='800 16px '+KO;
+        ctx.font='700 16px '+KO;
         longest=Math.max(longest,ctx.measureText(t.p1.name+'·'+t.p2.name).width);
       });
     }
@@ -1407,13 +1410,13 @@ function generateResultImage(){
   ctx.textBaseline='middle';
 
   // 배경 + 머리
-  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
-  ctx.fillStyle=GREEN;ctx.fillRect(0,0,W,5);
+  ctx.fillStyle=C.bg;ctx.fillRect(0,0,W,H);
+  if(C.bar){ctx.fillStyle=C.bar;ctx.fillRect(0,0,W,5);}
   ctx.textAlign='center';
-  ctx.fillStyle=GREEN;ctx.font='800 28px '+KO;
+  ctx.fillStyle=C.title;ctx.font='800 28px '+KO;
   ctx.fillText('🏸 피카츄의 배드민턴매치',W/2,40);
   var now=new Date();
-  ctx.fillStyle='#5b6b61';ctx.font='600 15px '+KO;
+  ctx.fillStyle=C.sub;ctx.font='600 15px '+KO;
   ctx.fillText((now.getMonth()+1)+'월 '+now.getDate()+'일 · '+Object.keys(players).length+'명 · '
     +nCourts+'코트 · '+order.length+'게임',W/2,72);
 
@@ -1424,40 +1427,41 @@ function generateResultImage(){
     // 테두리 + 초록 머리
     ctx.save();
     roundRect(ctx,x,cy,cardW,ch,12);ctx.clip();
-    ctx.fillStyle='#ffffff';ctx.fillRect(x,cy,cardW,ch);
-    ctx.fillStyle=GREEN;ctx.fillRect(x,cy,cardW,cardHead);
+    ctx.fillStyle=C.card;ctx.fillRect(x,cy,cardW,ch);
+    ctx.fillStyle=C.head;ctx.fillRect(x,cy,cardW,cardHead);
+    ctx.fillStyle=C.line;ctx.fillRect(x,cy+cardHead-1,cardW,1);
     ctx.restore();
-    ctx.strokeStyle='#dfe6e1';ctx.lineWidth=1;
+    ctx.strokeStyle=C.cardLine;ctx.lineWidth=1;
     roundRect(ctx,x+.5,cy+.5,cardW-1,ch-1,12);ctx.stroke();
-    ctx.textAlign='left';ctx.fillStyle='#ffffff';ctx.font='800 16px '+KO;
+    ctx.textAlign='left';ctx.fillStyle=C.headTxt;ctx.font='800 16px '+KO;
     ctx.fillText('게임 '+order[gi],x+12,cy+cardHead/2+1);
 
     var gms=games[order[gi]];
     for(var li=0;li<gms.length;li++){
       var g=gms[li],ly=cy+cardHead+li*lineH,mid=ly+lineH/2;
-      if(li>0){ctx.fillStyle='#eef2ef';ctx.fillRect(x+1,ly,cardW-2,1);}
+      if(li>0){ctx.fillStyle=C.line;ctx.fillRect(x+1,ly,cardW-2,1);}
       var left=x+10;
       // 코트가 여러 개일 때만 코트 딱지
       if(multi){
-        var cc=COURT_COLS[(g.cid-1)%COURT_COLS.length];
+        var cc=C.courts[(g.cid-1)%C.courts.length];
         ctx.font='800 11px '+KO;
         var cl=g.cid+'코트',cw=ctx.measureText(cl).width+12;
-        ctx.fillStyle=cc;roundRect(ctx,left,mid-10,cw,20,6);ctx.fill();
-        ctx.fillStyle='#ffffff';ctx.textAlign='center';ctx.fillText(cl,left+cw/2,mid+1);
+        ctx.fillStyle=cc+'1f';roundRect(ctx,left,mid-10,cw,20,6);ctx.fill();
+        ctx.fillStyle=cc;ctx.textAlign='center';ctx.fillText(cl,left+cw/2,mid+1);
         left+=cw+8;
       }
       var right=x+cardW-10,vsX=(left+right)/2,nameMaxW=(right-left)/2-16;
       var a=g.t1.p1.name+'·'+g.t1.p2.name,b=g.t2.p1.name+'·'+g.t2.p2.name;
-      ctx.fillStyle=INK;ctx.font='800 '+nameFs+'px '+KO;
+      ctx.fillStyle=C.name;ctx.font='700 '+nameFs+'px '+KO;
       // 마지막 안전장치: 그래도 넘치면 칸 폭 안으로 눌러 넣어 vs와 겹치지 않게
       ctx.textAlign='left';ctx.fillText(a,left,mid+1,nameMaxW);
       ctx.textAlign='right';ctx.fillText(b,right,mid+1,nameMaxW);
-      ctx.textAlign='center';ctx.fillStyle='#8a978f';ctx.font='800 11px '+KO;ctx.fillText('vs',vsX,mid+1);
+      ctx.textAlign='center';ctx.fillStyle=C.vs;ctx.font='700 11px '+KO;ctx.fillText('vs',vsX,mid+1);
     }
   }
 
   // 발치
-  ctx.textAlign='center';ctx.fillStyle='rgba(22,36,28,0.35)';
+  ctx.textAlign='center';ctx.fillStyle=C.foot;
   ctx.font='12px '+KO;ctx.fillText('피카츄의 배드민턴매치',W/2,H-16);
 
   canvas.toBlob(function(blob){
