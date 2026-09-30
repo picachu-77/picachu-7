@@ -1350,9 +1350,10 @@ function generateResultImage(){
   var ms=S.matches,ts=S.teams;
   var COURT_COLS=['#1565c0','#c2185b','#2e7d32','#ef6c00','#6a1b9a','#00838f'];
   var KO='"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif';
+  var GREEN='#1f8a4c',INK='#16241c';
 
-  // 세트별, 코트별 그룹핑
-  var setsMap={},blockOrder=[];
+  // 게임별로 묶기 — 게임 안에서는 코트 번호 순
+  var games={},order=[],courtSet={},players={};
   for(var i=0;i<ms.length;i++){
     var m=ms[i],t1=null,t2=null;
     for(var j=0;j<ts.length;j++){if(ts[j].id===m.t1)t1=ts[j];if(ts[j].id===m.t2)t2=ts[j];}
@@ -1360,163 +1361,104 @@ function generateResultImage(){
     if(t1.grp&&t2.grp&&t1.grp!==t2.grp) continue;
     var cid=(t1.grp)||m.court||1;
     var bn=m.blockNum||0;
-    if(!setsMap[bn]){setsMap[bn]={};blockOrder.push(bn);}
-    if(!setsMap[bn][cid]) setsMap[bn][cid]=[];
-    setsMap[bn][cid].push({m:m,t1:t1,t2:t2});
+    if(!games[bn]){games[bn]=[];order.push(bn);}
+    games[bn].push({cid:cid,t1:t1,t2:t2});
+    courtSet[cid]=true;
+    [t1.p1,t1.p2,t2.p1,t2.p2].forEach(function(p){players[p.name]=true;});
   }
+  order.sort(function(a,b){return a-b;});
+  for(var oi=0;oi<order.length;oi++) games[order[oi]].sort(function(a,b){return a.cid-b.cid;});
+  var nCourts=Object.keys(courtSet).length;
+  var multi=nCourts>1;
 
-  // 세트 수에 따라 컬럼 수 자동 결정
-  var totalSets=blockOrder.length;
-  // 최대 코트 수 파악
-  var maxCourts=1;
-  for(var si=0;si<blockOrder.length;si++){
-    var nCt=Object.keys(setsMap[blockOrder[si]]).length;
-    if(nCt>maxCourts) maxCourts=nCt;
-  }
-  // 코트가 많으면 이미지 컬럼을 줄여서 각 코트가 넓게 보이도록
-  var imgCols;
-  if(maxCourts>=3){
-    imgCols=1; // 3코트 이상이면 세트를 1열로 (각 세트 안에서 코트 가로 배치)
-  } else {
-    imgCols=totalSets>20?3:(totalSets>10?2:1);
-  }
-
-  // 세트별 높이 미리 계산
-  var setLabelH=24,cardH=42,cardGap=4,setGap=12;
-  var setHeights=[];
-  for(var si=0;si<blockOrder.length;si++){
-    var setData=setsMap[blockOrder[si]];
-    var courtIds=Object.keys(setData);
-    var maxCards=0;
-    for(var ci=0;ci<courtIds.length;ci++) maxCards=Math.max(maxCards,setData[courtIds[ci]].length);
-    setHeights.push(setLabelH+maxCards*(cardH+cardGap)+setGap);
-  }
-
-  // 캔버스 너비/높이 (코트 많으면 넓게)
-  var W;
-  if(maxCourts>=3){
-    W=Math.max(900,maxCourts*320); // 코트당 약 320px 확보 (긴 이름 대비)
-  } else {
-    W=imgCols===1?820:(imgCols===2?1160:1440);
-  }
-  var padX=20,headerH=90;
-  var colGap=12;
-  var colW=(W-padX*2-colGap*(imgCols-1))/imgCols;
-
-  // 세트를 컬럼별로 배분 (높이 균형)
-  var colHeights=[];for(var ci=0;ci<imgCols;ci++) colHeights.push(0);
-  var setCols=[]; // 각 세트가 어느 컬럼인지
-  // 단순 순차 배분 (전체 세트 / 컬럼 수)
-  var setsPerCol=Math.ceil(totalSets/imgCols);
-  for(var si=0;si<totalSets;si++) setCols.push(Math.floor(si/setsPerCol));
-
-  // 컬럼별 누적 높이 계산
-  for(var si=0;si<totalSets;si++) colHeights[setCols[si]]+=setHeights[si];
-  var maxColH=0;for(var ci=0;ci<imgCols;ci++) maxColH=Math.max(maxColH,colHeights[ci]);
-  var H=headerH+maxColH+40;
-
+  // 크기 — 폰에서 봐도 글씨가 읽히도록 720 폭에 2배로 그린다
+  var W=720,SC=2,padX=16,gap=10,headerH=100,footH=36,cardHead=32,lineH=38;
   var canvas=document.createElement('canvas');
-  canvas.width=W;canvas.height=H;
   var ctx=canvas.getContext('2d');
 
-  // 배경
-  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='#1f8a4c';ctx.fillRect(0,0,W,4);
-
-  // 타이틀
-  ctx.textAlign='center';
-  ctx.fillStyle='#1f8a4c';ctx.font='bold 28px '+KO;
-  ctx.fillText('⚡ 피카츄의 배드민턴매치',W/2,42);
-  ctx.fillStyle='rgba(22,36,28,0.55)';ctx.font='13px '+KO;
-  ctx.fillText('라운드 '+S.round+'  ·  총 '+ms.length+'게임',W/2,64);
-  ctx.strokeStyle='rgba(31,138,76,0.3)';ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(padX,76);ctx.lineTo(W-padX,76);ctx.stroke();
-
-  // 컬럼별 y 추적
-  var colY=[];for(var ci=0;ci<imgCols;ci++) colY.push(headerH);
-
-  // 세트별 렌더링
-  for(var si=0;si<blockOrder.length;si++){
-    var bn=blockOrder[si];
-    var setData=setsMap[bn];
-    var courtIds=Object.keys(setData).sort(function(a,b){return a-b;});
-    var ncols=courtIds.length;
-    var col=setCols[si];
-    var colX=padX+col*(colW+colGap);
-    var y=colY[col];
-
-    // 세트 라벨
-    var bi=null;for(var bi2=0;bi2<S.blockInfo.length;bi2++)if(S.blockInfo[bi2].blockNum===bn){bi=S.blockInfo[bi2];break;}
-    var sLabel='게임 '+bn;
-    ctx.textAlign='left';
-    ctx.fillStyle='#1f8a4c';ctx.font='bold 13px '+KO;
-    ctx.fillText(sLabel,colX,y+14);
-    y+=setLabelH;
-
-    // 코트 가로 배치
-    var subColW=(colW-(ncols-1)*6)/ncols;
-    var maxCards=0;
-    for(var ci=0;ci<courtIds.length;ci++) maxCards=Math.max(maxCards,setData[courtIds[ci]].length);
-
-    for(var ci=0;ci<courtIds.length;ci++){
-      var cid=parseInt(courtIds[ci]);
-      var cc=COURT_COLS[(cid-1)%COURT_COLS.length];
-      var cms=setData[courtIds[ci]];
-      var subX=colX+ci*(subColW+6);
-
-      // 카드들
-      for(var mi=0;mi<cms.length;mi++){
-        var mt1=cms[mi].t1,mt2=cms[mi].t2;
-        var cy=y+mi*(cardH+cardGap);
-
-        // 카드 배경 + 테두리 + 왼쪽 색 바
-        ctx.fillStyle='#f5f7f4';
-        roundRect(ctx,subX,cy,subColW,cardH,8);ctx.fill();
-        ctx.strokeStyle='rgba(22,36,28,0.12)';ctx.lineWidth=1;
-        roundRect(ctx,subX,cy,subColW,cardH,8);ctx.stroke();
-        ctx.fillStyle=cc;ctx.fillRect(subX,cy,3,cardH);
-
-        // 코트 표시 (멀티코트일 때만, 작게)
-        if(ncols>1){
-          ctx.textAlign='left';ctx.fillStyle=cc;ctx.font='bold 9px '+KO;
-          ctx.fillText(cid+'코트',subX+8,cy+12);
-        }
-
-        // 이름 한 줄로 (A·B  vs  C·D)
-        var t1name=mt1.p1.name+'·'+mt1.p2.name;
-        var t2name=mt2.p1.name+'·'+mt2.p2.name;
-        var midY=cy+cardH/2+(ncols>1?6:2);
-        // 각 팀 이름이 쓸 수 있는 최대 폭 (카드 절반에서 vs와 여백 뺀 값)
-        var nameMaxW=(subColW-24)/2-6;
-        // 칸 폭에 맞춰 폰트 크기 자동 축소 (13 → 최소 9px)
-        function fitFont(txt){
-          var fs=13;
-          ctx.font='bold '+fs+'px '+KO;
-          while(ctx.measureText(txt).width>nameMaxW&&fs>9){
-            fs-=0.5; ctx.font='bold '+fs+'px '+KO;
-          }
-          return fs;
-        }
-        var fs1=fitFont(t1name);
-        ctx.textAlign='left';ctx.fillStyle='#16241c';ctx.font='bold '+fs1+'px '+KO;
-        ctx.fillText(t1name,subX+8,midY);
-
-        ctx.textAlign='center';ctx.fillStyle=cc;ctx.font='bold 10px '+KO;
-        ctx.fillText('vs',subX+subColW/2,midY);
-
-        var fs2=fitFont(t2name);
-        ctx.textAlign='right';ctx.fillStyle='#16241c';ctx.font='bold '+fs2+'px '+KO;
-        ctx.fillText(t2name,subX+subColW-8,midY);
-      }
+  // 이름 글씨 크기는 이미지 전체에서 하나로 — 가장 긴 팀 이름이 칸에 들어가는 크기 (16 → 최소 13px)
+  // 2개씩 놓아서 13px로도 안 들어가면 한 줄에 게임 1개로 넓힌다
+  var chipW=multi?48:0,longest=0;
+  for(var oi=0;oi<order.length;oi++){
+    var gl=games[order[oi]];
+    for(var li=0;li<gl.length;li++){
+      [gl[li].t1,gl[li].t2].forEach(function(t){
+        ctx.font='800 16px '+KO;
+        longest=Math.max(longest,ctx.measureText(t.p1.name+'·'+t.p2.name).width);
+      });
     }
+  }
+  function nameRoom(cw){return (cw-20-chipW)/2-16;}
+  var cols=2,cardW=(W-padX*2-gap)/2;
+  if(longest*13/16>nameRoom(cardW)){cols=1;cardW=W-padX*2;}
+  var nameFs=Math.max(13,Math.min(16,Math.floor(16*nameRoom(cardW)/Math.max(longest,1)*2)/2));
 
-    y+=maxCards*(cardH+cardGap)+setGap-cardGap;
-    colY[col]=y;
+  var rows=[],y=headerH;
+  for(var gi=0;gi<order.length;gi+=cols){
+    var h=0;
+    for(var k=gi;k<gi+cols&&k<order.length;k++) h=Math.max(h,cardHead+games[order[k]].length*lineH);
+    rows.push({y:y,h:h});
+    y+=h+gap;
+  }
+  var H=y-gap+footH;
+
+  canvas.width=W*SC;canvas.height=H*SC;
+  ctx.scale(SC,SC);
+  ctx.textBaseline='middle';
+
+  // 배경 + 머리
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=GREEN;ctx.fillRect(0,0,W,5);
+  ctx.textAlign='center';
+  ctx.fillStyle=GREEN;ctx.font='800 28px '+KO;
+  ctx.fillText('🏸 피카츄의 배드민턴매치',W/2,40);
+  var now=new Date();
+  ctx.fillStyle='#5b6b61';ctx.font='600 15px '+KO;
+  ctx.fillText((now.getMonth()+1)+'월 '+now.getDate()+'일 · '+Object.keys(players).length+'명 · '
+    +nCourts+'코트 · '+order.length+'게임',W/2,72);
+
+  // 게임 카드 — 가로 2개씩 (이름이 길면 1개씩)
+  for(var gi=0;gi<order.length;gi++){
+    var row=rows[Math.floor(gi/cols)];
+    var x=padX+(gi%cols)*(cardW+gap),cy=row.y,ch=cardHead+games[order[gi]].length*lineH;
+    // 테두리 + 초록 머리
+    ctx.save();
+    roundRect(ctx,x,cy,cardW,ch,12);ctx.clip();
+    ctx.fillStyle='#ffffff';ctx.fillRect(x,cy,cardW,ch);
+    ctx.fillStyle=GREEN;ctx.fillRect(x,cy,cardW,cardHead);
+    ctx.restore();
+    ctx.strokeStyle='#dfe6e1';ctx.lineWidth=1;
+    roundRect(ctx,x+.5,cy+.5,cardW-1,ch-1,12);ctx.stroke();
+    ctx.textAlign='left';ctx.fillStyle='#ffffff';ctx.font='800 16px '+KO;
+    ctx.fillText('게임 '+order[gi],x+12,cy+cardHead/2+1);
+
+    var gms=games[order[gi]];
+    for(var li=0;li<gms.length;li++){
+      var g=gms[li],ly=cy+cardHead+li*lineH,mid=ly+lineH/2;
+      if(li>0){ctx.fillStyle='#eef2ef';ctx.fillRect(x+1,ly,cardW-2,1);}
+      var left=x+10;
+      // 코트가 여러 개일 때만 코트 딱지
+      if(multi){
+        var cc=COURT_COLS[(g.cid-1)%COURT_COLS.length];
+        ctx.font='800 11px '+KO;
+        var cl=g.cid+'코트',cw=ctx.measureText(cl).width+12;
+        ctx.fillStyle=cc;roundRect(ctx,left,mid-10,cw,20,6);ctx.fill();
+        ctx.fillStyle='#ffffff';ctx.textAlign='center';ctx.fillText(cl,left+cw/2,mid+1);
+        left+=cw+8;
+      }
+      var right=x+cardW-10,vsX=(left+right)/2,nameMaxW=(right-left)/2-16;
+      var a=g.t1.p1.name+'·'+g.t1.p2.name,b=g.t2.p1.name+'·'+g.t2.p2.name;
+      ctx.fillStyle=INK;ctx.font='800 '+nameFs+'px '+KO;
+      // 마지막 안전장치: 그래도 넘치면 칸 폭 안으로 눌러 넣어 vs와 겹치지 않게
+      ctx.textAlign='left';ctx.fillText(a,left,mid+1,nameMaxW);
+      ctx.textAlign='right';ctx.fillText(b,right,mid+1,nameMaxW);
+      ctx.textAlign='center';ctx.fillStyle='#8a978f';ctx.font='800 11px '+KO;ctx.fillText('vs',vsX,mid+1);
+    }
   }
 
-  // 푸터
-  ctx.textAlign='center';ctx.fillStyle='rgba(22,36,28,0.3)';
-  ctx.font='11px '+KO;ctx.fillText('피카츄의 배드민턴매치',W/2,H-14);
+  // 발치
+  ctx.textAlign='center';ctx.fillStyle='rgba(22,36,28,0.35)';
+  ctx.font='12px '+KO;ctx.fillText('피카츄의 배드민턴매치',W/2,H-16);
 
   canvas.toBlob(function(blob){
     // 폰·태블릿 감지 (최신 아이패드는 Macintosh로 잡히므로 터치 여부도 확인)
