@@ -2527,6 +2527,8 @@ function mStep2Html(){
         +'<span id="scored-cnt" style="font-weight:700;opacity:.85">'
         +(scoredCount()>0?'('+scoredCount()+')':'')+'</span></button>':'')
     +'</div>'
+    +'</div>'
+    // 공유 버튼(카톡·이미지·인쇄)은 설정이 접혀 있어도 늘 보이도록 접히는 칸 밖에 둔다
     +(hasMatches
       ?'<div class="brow" style="margin-top:8px">'
          +'<button class="btn suc" data-a="cpr" style="flex:1 1 0;min-width:0;padding:12px 6px;font-size:var(--fs-sm);white-space:nowrap">📋 카톡</button>'
@@ -2534,7 +2536,6 @@ function mStep2Html(){
          +'<button class="btn gho" onclick="printSchedule()" style="flex:1 1 0;min-width:0;padding:12px 6px;font-size:var(--fs-sm);white-space:nowrap">🖨️ 인쇄</button>'
        +'</div>'
       :'')
-    +'</div>'
     +'</div>';
 
   // ── 대진표 본문 ──
