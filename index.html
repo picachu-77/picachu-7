@@ -317,6 +317,8 @@ input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
   min-height:36px;display:flex;align-items:center}
 .mteam.r .mname{justify-content:flex-end}
 .mteam.won .mname{color:var(--court)}
+/* 3게임 이상 연속 출전 중인 게임의 이름은 빨간색 (자리 바꾸려고 고른 이름은 제외) */
+.mteam .mname.hot:not(.sel){color:var(--flag)}
 
 /* 네트 위의 점수 — 각 팀 바로 아래 칸 */
 .score-row{position:relative;display:grid;grid-template-columns:1fr auto 1fr;
@@ -2011,8 +2013,9 @@ function mStep1Html(){
 // 탭 2: 매치 — Step 2 대진표 (팀구성방식 포함)
 // ══════════════════════════════════════════════════════════════════
 // 3게임 연속 출전/휴식인 사람 계산
+// hot[게임번호][이름]=true — 3게임 이상 연속 출전한 구간에 속한 게임 (대진표 이름 빨간색)
 function calcStreaks(){
-  var result={playing:[],resting:[]};
+  var result={playing:[],resting:[],hot:{}};
   if(!S.matches||S.matches.length===0) return result;
   // 참석자 전체 (선택된 사람)
   var attendees=[];
@@ -2038,14 +2041,23 @@ function calcStreaks(){
   // 각 사람별로 연속 출전/휴식 최대 길이 계산
   for(var ai=0;ai<attendees.length;ai++){
     var name=attendees[ai];
-    var maxPlay=0, maxRest=0, curPlay=0, curRest=0;
+    var maxPlay=0, maxRest=0, curPlay=0, curRest=0, runs=[];
     for(var bi=0;bi<blocks.length;bi++){
       var inGame=!!playedIn[blocks[bi]][name];
-      if(inGame){ curPlay++; curRest=0; if(curPlay>maxPlay)maxPlay=curPlay; }
+      if(inGame){ curPlay++; curRest=0; if(curPlay>maxPlay)maxPlay=curPlay; if(curPlay>=3) runs.push(bi); }
       else { curRest++; curPlay=0; if(curRest>maxRest)maxRest=curRest; }
     }
     // 한 번도 안 쉬는 사람은 "연속 출전"이 아니라 전 경기 출전이라 조정할 여지가 없음
-    if(maxPlay>=3&&maxRest>0) result.playing.push(name);
+    if(maxPlay>=3&&maxRest>0){
+      result.playing.push(name);
+      // 3번째 이상인 게임과 그 앞 두 게임 = 연속 구간 전체
+      for(var ri=0;ri<runs.length;ri++){
+        for(var bk=runs[ri]-2;bk<=runs[ri];bk++){
+          var hb=blocks[bk]; if(!result.hot[hb]) result.hot[hb]={};
+          result.hot[hb][name]=true;
+        }
+      }
+    }
     if(maxRest>=3) result.resting.push(name);
   }
   return result;
@@ -2380,11 +2392,13 @@ function mStep2Html(){
   var maxCt=1;
   for(var si=0;si<blockOrder.length;si++) maxCt=Math.max(maxCt,Object.keys(setsMap[blockOrder[si]]).length);
   mCards+='<div class="game-list" style="--gmin:'+Math.max(300,maxCt*240+(maxCt-1)*10)+'px">';
+  var hotMap=calcStreaks().hot;
   for(var si=0;si<blockOrder.length;si++){
     var bn=blockOrder[si];
     var setData=setsMap[bn];
     var courtIds=Object.keys(setData).sort(function(a,b){return a-b;});
     var ncols=courtIds.length;
+    var hotNames=hotMap[bn]||{};
     mCards+='<div class="game-block">';
 
     // 세트 구분선
@@ -2446,7 +2460,7 @@ function mStep2Html(){
         function pcell(pl,tid,slot){
           var key=tid+'_'+slot;
           var sel=(S.swapSel===key);
-          return '<div class="mname pswap'+(sel?' sel':'')+'" data-a="swapPick" data-k="'+key+'" '
+          return '<div class="mname pswap'+(sel?' sel':'')+(hotNames[pl.name]?' hot':'')+'" data-a="swapPick" data-k="'+key+'" '
             +'draggable="true" data-drag="'+key+'" title="눌러서 자리 바꾸기">'+pl.name+'</div>';
         }
         var cardCls='mcard'+(win?' decided':isIP?' live':'');
