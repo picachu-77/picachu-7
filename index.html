@@ -89,9 +89,9 @@ input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 
 #app{min-height:100vh;padding:0 0 max(28px,env(safe-area-inset-bottom))}
 .wrap{width:100%;max-width:1240px;margin:0 auto;padding:0 16px}
-/* 앱 전체 크기 — 글씨·버튼·칸을 같은 비율로 줄인다 (선수 이름 17px → 11px).
+/* 앱 전체 크기 — 글씨·버튼·칸을 같은 비율로 줄인다 (선수 이름 17px → 15px).
    줄인 만큼 최대 폭은 넓혀서 보이는 폭은 그대로 */
-:root{--ui-zoom:.6471}
+:root{--ui-zoom:.8824}
 .wrap{zoom:var(--ui-zoom);max-width:calc(1240px / var(--ui-zoom))}
 @media(min-width:760px){ .wrap{padding:0 24px} }
 .content{padding:0}
@@ -288,9 +288,9 @@ input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
    ══════════════════════════════════════════════════════════════════ */
 .court-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
 /* 게임 목록 — 공간이 남으면 게임을 가로로 2개씩 놓는다 (최대 2열).
-   --gmin: 게임 하나가 필요한 최소 폭 (코트 수에 따라 JS가 정함) */
+   --gmin: 게임 하나가 필요한 최소 폭 (코트 수에 따라 JS가 정함). 화면보다 넓어지지는 않게 100%로 막는다 */
 .game-list{display:grid;column-gap:16px;
-  grid-template-columns:repeat(auto-fill,minmax(max(var(--gmin,300px),calc(50% - 8px)),1fr))}
+  grid-template-columns:repeat(auto-fill,minmax(min(100%,max(var(--gmin,300px),calc(50% - 8px))),1fr))}
 .game-block{min-width:0}
 
 .mcard{border-radius:var(--r-l);overflow:hidden;background:var(--surface);
@@ -1378,8 +1378,8 @@ function generateResultImage(){
   var nCourts=Object.keys(courtSet).length;
   var multi=nCourts>1;
 
-  // 크기 — 720 폭 기준으로 배치하고, 저장할 때는 이름 글씨가 11px이 되도록 줄여서 그린다
-  var W=720,SC=11/16,padX=16,gap=10,headerH=100,footH=36,cardHead=32,lineH=38;
+  // 크기 — 720 폭 기준으로 배치하고, 저장할 때는 이름 글씨가 15px이 되도록 줄여서 그린다
+  var W=720,SC=15/16,padX=16,gap=10,headerH=100,footH=36,cardHead=32,lineH=38;
   var canvas=document.createElement('canvas');
   var ctx=canvas.getContext('2d');
 
@@ -1409,7 +1409,7 @@ function generateResultImage(){
   }
   var H=y-gap+footH;
 
-  // 100%로 볼 때 이름 글씨가 11px (웹과 같은 크기)
+  // 100%로 볼 때 이름 글씨가 15px (웹과 같은 크기)
   canvas.width=Math.round(W*SC);canvas.height=Math.round(H*SC);
   ctx.scale(SC,SC);
   ctx.textBaseline='middle';
