@@ -1384,7 +1384,7 @@ function generateResultImage(){
   var ctx=canvas.getContext('2d');
 
   // 이름 글씨 크기는 이미지 전체에서 하나로 — 가장 긴 팀 이름이 칸에 들어가는 크기 (16 → 최소 13px)
-  // 2개씩 놓아서 13px로도 안 들어가면 한 줄에 게임 1개로 넓힌다
+  // 게임은 늘 가로 2개씩. 13px로도 안 들어가면 이미지 가로 폭을 그만큼 넓힌다 (카드 최대 520)
   var chipW=multi?48:0,longest=0;
   for(var oi=0;oi<order.length;oi++){
     var gl=games[order[oi]];
@@ -1397,7 +1397,8 @@ function generateResultImage(){
   }
   function nameRoom(cw){return (cw-20-chipW)/2-16;}
   var cols=2,cardW=(W-padX*2-gap)/2;
-  if(longest*13/16>nameRoom(cardW)){cols=1;cardW=W-padX*2;}
+  var needW=(longest*13/16+16)*2+20+chipW;
+  if(needW>cardW){cardW=Math.min(520,Math.ceil(needW));W=cardW*2+gap+padX*2;}
   var nameFs=Math.max(13,Math.min(16,Math.floor(16*nameRoom(cardW)/Math.max(longest,1)*2)/2));
 
   var rows=[],y=headerH;
