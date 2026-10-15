@@ -437,6 +437,13 @@ input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
   #toast{display:none!important;}
   #print-area{display:block!important;font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:#000;padding:20px;}
 }
+.auth-wrap{max-width:520px;padding-top:clamp(24px,8vh,80px)}
+.auth-card .app-mark{margin-bottom:14px}
+.auth-card .ttl{font-size:var(--fs-xl)}
+.auth-card .inp{font-size:16px}
+.account-bar{display:flex;align-items:center;gap:12px;justify-content:flex-end;margin-bottom:12px}
+.account-bar span{min-width:0;overflow-wrap:anywhere;font-size:var(--fs-sm);color:var(--ink-2)}
+.account-bar .btn{flex-shrink:0}
 </style>
 </head>
 <body>
@@ -552,6 +559,119 @@ var firebaseConfig={
 };
 var db=null;
 
+var AUTH={ready:false,user:null,busy:false,error:'',message:'',mode:'login',email:''};
+var authGeneration=0;
+var initialAppState=JSON.stringify(S);
+function authEscape(value){
+  return String(value||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});
+}
+function authError(error){
+  var messages={
+    'auth/invalid-email':'이메일 주소를 확인해 주세요.',
+    'auth/invalid-credential':'이메일 또는 비밀번호를 확인해 주세요.',
+    'auth/invalid-login-credentials':'이메일 또는 비밀번호를 확인해 주세요.',
+    'auth/user-not-found':'이메일 또는 비밀번호를 확인해 주세요.',
+    'auth/wrong-password':'이메일 또는 비밀번호를 확인해 주세요.',
+    'auth/email-already-in-use':'이미 가입된 이메일입니다. 로그인하거나 비밀번호를 재설정해 주세요.',
+    'auth/weak-password':'비밀번호는 6자 이상으로 입력해 주세요.',
+    'auth/too-many-requests':'요청이 많습니다. 잠시 후 다시 시도해 주세요.',
+    'auth/network-request-failed':'인터넷 연결을 확인한 뒤 다시 시도해 주세요.',
+    'auth/operation-not-allowed':'이메일 로그인이 아직 활성화되지 않았습니다. 운영자에게 문의해 주세요.',
+    'auth/unauthorized-domain':'이 주소에서는 로그인할 수 없습니다. 운영자에게 문의해 주세요.',
+    'auth/user-disabled':'사용이 중지된 계정입니다. 운영자에게 문의해 주세요.'
+  };
+  return messages[error&&error.code]||'요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.';
+}
+function renderAuth(){
+  var signup=AUTH.mode==='signup', reset=AUTH.mode==='reset';
+  var disabled=!AUTH.ready||AUTH.busy?' disabled':'';
+  var title=reset?'비밀번호 재설정':signup?'회원가입':'로그인';
+  document.getElementById('app').innerHTML='<main class="wrap auth-wrap"><div class="card auth-card">'
+    +'<div class="app-mark">⚡🏸</div><h1 class="ttl">피카츄의 배드민턴매치</h1>'
+    +'<p class="sub">계정으로 로그인하고 동호회 대진표와 전적을 관리하세요.</p>'
+    +'<h2 style="margin-bottom:16px">'+title+'</h2>'
+    +'<form id="auth-form"><label class="lbl" for="auth-email">이메일</label>'
+    +'<input class="inp" id="auth-email" name="email" type="email" autocomplete="username" required maxlength="254" value="'+authEscape(AUTH.email)+'"'+disabled+'>'
+    +(reset?'':'<label class="lbl" for="auth-password" style="display:block;margin-top:14px">비밀번호</label>'
+      +'<input class="inp" id="auth-password" name="password" type="password" autocomplete="'+(signup?'new-password':'current-password')+'" required minlength="6"'+disabled+'>')
+    +(signup?'<label class="lbl" for="auth-confirm" style="display:block;margin-top:14px">비밀번호 확인</label>'
+      +'<input class="inp" id="auth-confirm" name="confirm" type="password" autocomplete="new-password" required minlength="6"'+disabled+'>':'')
+    +'<p id="auth-status" role="'+(AUTH.error?'alert':'status')+'" style="margin:14px 0;color:var(--'+(AUTH.error?'flag':'ink-2')+')">'
+    +authEscape(AUTH.error||AUTH.message||(!AUTH.ready?'로그인 서비스를 연결하고 있어요.':''))+'</p>'
+    +'<button class="btn pri" style="width:100%" type="submit"'+disabled+'>'
+    +(AUTH.busy?'처리 중…':reset?'재설정 메일 보내기':title)+'</button></form>'
+    +'<div class="brow" style="margin-top:14px">'
+    +'<button class="btn gho" data-auth-mode="'+(signup||reset?'login':'signup')+'"'+(AUTH.busy?' disabled':'')+'>'
+    +(signup||reset?'로그인으로 돌아가기':'회원가입')+'</button>'
+    +(!reset?'<button class="btn gho" data-auth-mode="reset"'+(AUTH.busy?' disabled':'')+'>비밀번호 찾기</button>':'')
+    +'</div><p class="sub" style="margin-top:16px;margin-bottom:0">회원은 기존 동호회 명단과 전적을 함께 사용합니다.</p>'
+    +(!AUTH.ready&&AUTH.error?'<button class="btn gho" style="margin-top:12px" onclick="location.reload()">다시 연결</button>':'')
+    +'</div></main>';
+  document.getElementById('auth-form').addEventListener('submit',submitAuth);
+  var modes=document.querySelectorAll('[data-auth-mode]');
+  for(var i=0;i<modes.length;i++) modes[i].onclick=function(){
+    AUTH.email=document.getElementById('auth-email').value.trim();
+    AUTH.mode=this.getAttribute('data-auth-mode');AUTH.error='';AUTH.message='';renderAuth();
+  };
+}
+function submitAuth(event){
+  event.preventDefault();
+  if(!AUTH.ready||AUTH.busy) return;
+  var email=document.getElementById('auth-email').value.trim();
+  var passwordEl=document.getElementById('auth-password');
+  var password=passwordEl?passwordEl.value:'';
+  AUTH.email=email;AUTH.error='';AUTH.message='';
+  if(AUTH.mode==='signup'&&password!==document.getElementById('auth-confirm').value){
+    AUTH.error='비밀번호가 서로 다릅니다.';renderAuth();return;
+  }
+  AUTH.busy=true;
+  var mode=AUTH.mode, request;
+  try{
+    if(mode==='reset') request=firebase.auth().sendPasswordResetEmail(email);
+    else if(mode==='signup') request=firebase.auth().createUserWithEmailAndPassword(email,password);
+    else request=firebase.auth().signInWithEmailAndPassword(email,password);
+  }catch(error){request=Promise.reject(error);}
+  password='';
+  render();
+  request.then(function(){
+    AUTH.busy=false;
+    if(mode==='reset'){
+      AUTH.message='가입된 이메일이라면 재설정 메일이 발송됩니다. 받은편지함과 스팸함을 확인해 주세요.';
+      renderAuth();
+    }
+  }).catch(function(error){
+    AUTH.busy=false;
+    if(mode==='reset'&&error.code==='auth/user-not-found')
+      AUTH.message='가입된 이메일이라면 재설정 메일이 발송됩니다. 받은편지함과 스팸함을 확인해 주세요.';
+    else AUTH.error=authError(error);
+    renderAuth();
+  });
+}
+function startAuth(){
+  firebase.auth().onAuthStateChanged(function(user){
+    authGeneration++;
+    if(db){['roster','groupNames','stats','session'].forEach(function(path){db.ref(path).off();});}
+    db=null;
+    var dialog=document.getElementById('restore-dialog');
+    if(dialog) dialog.remove();
+    var theme=S.theme;
+    S=JSON.parse(initialAppState);S.theme=theme;
+    AUTH.ready=true;AUTH.user=user;AUTH.busy=false;AUTH.error='';AUTH.message='';
+    if(user){
+      lsRosterLoad();lsCareerLoad();
+      db=firebase.database();render();fbListen();
+    }else render();
+  },function(error){AUTH.error=authError(error);AUTH.ready=false;renderAuth();});
+}
+function logout(){
+  if(AUTH.busy) return;
+  AUTH.busy=true;render();
+  firebase.auth().signOut().catch(function(error){
+    AUTH.busy=false;toast(authError(error));render();
+  });
+}
+
+
 function sortRoster(){
   S.roster.sort(function(a,b){return a.name.localeCompare(b.name,'ko');});
 }
@@ -606,7 +726,10 @@ function lsLoad(){
 
 // Firebase 실시간 리스너
 function fbListen(){
+  var generation=authGeneration;
+  function active(){return AUTH.user&&generation===authGeneration;}
   db.ref('roster').on('value',function(snap){
+    if(!active()) return;
     var data=snap.val();
     var roster=[];
     if(data){
@@ -631,12 +754,14 @@ function fbListen(){
     }
   });
   db.ref('groupNames').on('value',function(snap){
+    if(!active()) return;
     var data=snap.val();
     if(data&&Array.isArray(data))S.groupNames=data;
     render();
   });
   // 누적 전적
   db.ref('stats').on('value',function(snap){
+    if(!active()) return;
     var data=snap.val();
     if(data&&typeof data==='object'&&!Array.isArray(data)){
       S.career=data;
@@ -649,6 +774,7 @@ function fbListen(){
   });
   // 대진표 세션 불러오기 — 물어보고 복구
   db.ref('session').once('value',function(snap){
+    if(!active()) return;
     var d=snap.val();
     if(!d||!d.teams||!d.teams.length) return;
     // 확인 팝업
@@ -714,40 +840,41 @@ function restoreSession(d){
 
 // Firebase SDK를 동적으로 로드
 function loadFirebase(){
-  var urls=[
-    ['https://unpkg.com/firebase@8.10.1/firebase-app.js',
-     'https://unpkg.com/firebase@8.10.1/firebase-database.js'],
-    ['https://cdn.jsdelivr.net/npm/firebase@8.10.1/firebase-app.min.js',
-     'https://cdn.jsdelivr.net/npm/firebase@8.10.1/firebase-database.min.js'],
-    ['https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
-     'https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js']
+  var bases=[
+    'https://www.gstatic.com/firebasejs/8.10.1/',
+    'https://cdn.jsdelivr.net/npm/firebase@8.10.1/',
+    'https://unpkg.com/firebase@8.10.1/'
   ];
-  var idx=0;
-  function tryLoad(){
-    if(idx>=urls.length){toast('Firebase 연결 불가 — 로컬 모드로 실행');return;}
-    var pair=urls[idx++];
-    var s1=document.createElement('script');
-    s1.src=pair[0];
-    s1.onload=function(){
-      var s2=document.createElement('script');
-      s2.src=pair[1];
-      s2.onload=function(){
+  var files=['firebase-app.js','firebase-auth.js','firebase-database.js'];
+  function attempt(index){
+    if(index>=bases.length){
+      AUTH.error='로그인 서비스에 연결하지 못했습니다. 인터넷 연결을 확인하고 다시 연결해 주세요.';
+      renderAuth();return;
+    }
+    function next(fileIndex){
+      if(fileIndex===files.length){
         try{
-          if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-          db=firebase.database();
-          fbListen();
-          toast('✅ Firebase 연결됐어요');
-        }catch(e){tryLoad();}
+          if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
+          startAuth();
+        }catch(error){attempt(index+1);}
+        return;
+      }
+      var script=document.createElement('script'),finished=false;
+      var timer=setTimeout(fail,12000);
+      function fail(){
+        if(finished)return;finished=true;clearTimeout(timer);script.remove();attempt(index+1);
+      }
+      script.src=bases[index]+files[fileIndex];
+      script.onload=function(){
+        if(finished)return;finished=true;clearTimeout(timer);next(fileIndex+1);
       };
-      s2.onerror=function(){tryLoad();};
-      document.head.appendChild(s2);
-    };
-    s1.onerror=function(){tryLoad();};
-    document.head.appendChild(s1);
+      script.onerror=fail;
+      document.head.appendChild(script);
+    }
+    next(0);
   }
-  tryLoad();
+  attempt(0);
 }
-
 // ══════════════════════════════════════════════════════════════════
 // 유틸
 // ══════════════════════════════════════════════════════════════════
@@ -2898,6 +3025,7 @@ function renderRosterList(){
 }
 
 function render(){
+  if(!AUTH.user){renderAuth();return;}
   var themeIcon=S.theme==='dark'?'☀️':'🌙';
   var tabRoster='<button class="tab'+(S.tab==='roster'?' active':'')+'" data-a="gotab" data-v="roster">👥 명단</button>';
   var tabMatch='<button class="tab'+(S.tab==='match'?' active':'')+'" data-a="gotab" data-v="match">🏸 매치</button>';
@@ -2929,9 +3057,12 @@ function render(){
       +'</div>'
       +'<button class="theme-btn" data-a="thm" aria-label="화면 밝기 바꾸기">'+themeIcon+'</button>'
     +'</div>'
+    +'<div class="account-bar"><span>'+authEscape(AUTH.user.email)+'</span><button class="btn gho" id="logout-btn"'+(AUTH.busy?' disabled':'')+'>로그아웃</button></div>'
     +'<div class="tabs">'+tabRoster+tabMatch+tabTour+'</div>'
     +'<div class="content">'+bodyHtml+'</div>'
     +'</div>';
+
+  document.getElementById('logout-btn').onclick=logout;
 
   // 포커스
   var ni=document.getElementById('rni');
@@ -3199,6 +3330,7 @@ function doSwap(keyA,keyB){
 }
 
 function act(a,d){
+  if(!AUTH.user) return;
   d=d||{};
 
   // ── 공통 ──────────────────────────────────────────────────────
@@ -3495,7 +3627,7 @@ document.addEventListener('click',function(e){
 });
 
 // ── 시작 ─────────────────────────────────────────────────────────
-lsLoad(); // 테마 + 로컬 명단 로드
+try{var savedTheme=localStorage.getItem('bdm_theme');if(savedTheme)S.theme=savedTheme;}catch(e){}
 document.body.classList.toggle('light',S.theme==='light');
 render();
 loadFirebase(); // Firebase 동적 로드 → 연결 후 자동 re-render
