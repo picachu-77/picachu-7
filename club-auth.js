@@ -111,6 +111,7 @@ function logout(){
   firebase.auth().signOut().catch(function(e){AUTH.error=authError(e);AUTH.view='clubs';}).finally(function(){AUTH.busy=false;render();});
 }
 function accountDisplayName(profile){
+  if(profile.username==='hh3355')return '이동하';
   if(profile.username==='chease312'&&profile.displayName==='chease312')return '최승현';
   return profile.displayName;
 }
