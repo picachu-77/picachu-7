@@ -445,10 +445,13 @@ input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .account-bar span{min-width:0;overflow-wrap:anywhere;font-size:var(--fs-sm);color:var(--ink-2)}
 .account-bar .btn{flex-shrink:0}
 </style>
+<link rel="stylesheet" href="club-auth.css">
 </head>
 <body>
 <div id="toast"></div>
 <div id="app"></div>
+<script src="club-auth.js"></script>
+<script src="spark-access.js"></script>
 <script>
 // ══════════════════════════════════════════════════════════════════
 // 상수
@@ -559,118 +562,7 @@ var firebaseConfig={
 };
 var db=null;
 
-var AUTH={ready:false,user:null,busy:false,error:'',message:'',mode:'login',email:''};
-var authGeneration=0;
 var initialAppState=JSON.stringify(S);
-function authEscape(value){
-  return String(value||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});
-}
-function authError(error){
-  var messages={
-    'auth/invalid-email':'이메일 주소를 확인해 주세요.',
-    'auth/invalid-credential':'이메일 또는 비밀번호를 확인해 주세요.',
-    'auth/invalid-login-credentials':'이메일 또는 비밀번호를 확인해 주세요.',
-    'auth/user-not-found':'이메일 또는 비밀번호를 확인해 주세요.',
-    'auth/wrong-password':'이메일 또는 비밀번호를 확인해 주세요.',
-    'auth/email-already-in-use':'이미 가입된 이메일입니다. 로그인하거나 비밀번호를 재설정해 주세요.',
-    'auth/weak-password':'비밀번호는 6자 이상으로 입력해 주세요.',
-    'auth/too-many-requests':'요청이 많습니다. 잠시 후 다시 시도해 주세요.',
-    'auth/network-request-failed':'인터넷 연결을 확인한 뒤 다시 시도해 주세요.',
-    'auth/operation-not-allowed':'이메일 로그인이 아직 활성화되지 않았습니다. 운영자에게 문의해 주세요.',
-    'auth/unauthorized-domain':'이 주소에서는 로그인할 수 없습니다. 운영자에게 문의해 주세요.',
-    'auth/user-disabled':'사용이 중지된 계정입니다. 운영자에게 문의해 주세요.'
-  };
-  return messages[error&&error.code]||'요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.';
-}
-function renderAuth(){
-  var signup=AUTH.mode==='signup', reset=AUTH.mode==='reset';
-  var disabled=!AUTH.ready||AUTH.busy?' disabled':'';
-  var title=reset?'비밀번호 재설정':signup?'회원가입':'로그인';
-  document.getElementById('app').innerHTML='<main class="wrap auth-wrap"><div class="card auth-card">'
-    +'<div class="app-mark">⚡🏸</div><h1 class="ttl">피카츄의 배드민턴매치</h1>'
-    +'<p class="sub">계정으로 로그인하고 동호회 대진표와 전적을 관리하세요.</p>'
-    +'<h2 style="margin-bottom:16px">'+title+'</h2>'
-    +'<form id="auth-form"><label class="lbl" for="auth-email">이메일</label>'
-    +'<input class="inp" id="auth-email" name="email" type="email" autocomplete="username" required maxlength="254" value="'+authEscape(AUTH.email)+'"'+disabled+'>'
-    +(reset?'':'<label class="lbl" for="auth-password" style="display:block;margin-top:14px">비밀번호</label>'
-      +'<input class="inp" id="auth-password" name="password" type="password" autocomplete="'+(signup?'new-password':'current-password')+'" required minlength="6"'+disabled+'>')
-    +(signup?'<label class="lbl" for="auth-confirm" style="display:block;margin-top:14px">비밀번호 확인</label>'
-      +'<input class="inp" id="auth-confirm" name="confirm" type="password" autocomplete="new-password" required minlength="6"'+disabled+'>':'')
-    +'<p id="auth-status" role="'+(AUTH.error?'alert':'status')+'" style="margin:14px 0;color:var(--'+(AUTH.error?'flag':'ink-2')+')">'
-    +authEscape(AUTH.error||AUTH.message||(!AUTH.ready?'로그인 서비스를 연결하고 있어요.':''))+'</p>'
-    +'<button class="btn pri" style="width:100%" type="submit"'+disabled+'>'
-    +(AUTH.busy?'처리 중…':reset?'재설정 메일 보내기':title)+'</button></form>'
-    +'<div class="brow" style="margin-top:14px">'
-    +'<button class="btn gho" data-auth-mode="'+(signup||reset?'login':'signup')+'"'+(AUTH.busy?' disabled':'')+'>'
-    +(signup||reset?'로그인으로 돌아가기':'회원가입')+'</button>'
-    +(!reset?'<button class="btn gho" data-auth-mode="reset"'+(AUTH.busy?' disabled':'')+'>비밀번호 찾기</button>':'')
-    +'</div><p class="sub" style="margin-top:16px;margin-bottom:0">회원은 기존 동호회 명단과 전적을 함께 사용합니다.</p>'
-    +(!AUTH.ready&&AUTH.error?'<button class="btn gho" style="margin-top:12px" onclick="location.reload()">다시 연결</button>':'')
-    +'</div></main>';
-  document.getElementById('auth-form').addEventListener('submit',submitAuth);
-  var modes=document.querySelectorAll('[data-auth-mode]');
-  for(var i=0;i<modes.length;i++) modes[i].onclick=function(){
-    AUTH.email=document.getElementById('auth-email').value.trim();
-    AUTH.mode=this.getAttribute('data-auth-mode');AUTH.error='';AUTH.message='';renderAuth();
-  };
-}
-function submitAuth(event){
-  event.preventDefault();
-  if(!AUTH.ready||AUTH.busy) return;
-  var email=document.getElementById('auth-email').value.trim();
-  var passwordEl=document.getElementById('auth-password');
-  var password=passwordEl?passwordEl.value:'';
-  AUTH.email=email;AUTH.error='';AUTH.message='';
-  if(AUTH.mode==='signup'&&password!==document.getElementById('auth-confirm').value){
-    AUTH.error='비밀번호가 서로 다릅니다.';renderAuth();return;
-  }
-  AUTH.busy=true;
-  var mode=AUTH.mode, request;
-  try{
-    if(mode==='reset') request=firebase.auth().sendPasswordResetEmail(email);
-    else if(mode==='signup') request=firebase.auth().createUserWithEmailAndPassword(email,password);
-    else request=firebase.auth().signInWithEmailAndPassword(email,password);
-  }catch(error){request=Promise.reject(error);}
-  password='';
-  render();
-  request.then(function(){
-    AUTH.busy=false;
-    if(mode==='reset'){
-      AUTH.message='가입된 이메일이라면 재설정 메일이 발송됩니다. 받은편지함과 스팸함을 확인해 주세요.';
-      renderAuth();
-    }
-  }).catch(function(error){
-    AUTH.busy=false;
-    if(mode==='reset'&&error.code==='auth/user-not-found')
-      AUTH.message='가입된 이메일이라면 재설정 메일이 발송됩니다. 받은편지함과 스팸함을 확인해 주세요.';
-    else AUTH.error=authError(error);
-    renderAuth();
-  });
-}
-function startAuth(){
-  firebase.auth().onAuthStateChanged(function(user){
-    authGeneration++;
-    if(db){['roster','groupNames','stats','session'].forEach(function(path){db.ref(path).off();});}
-    db=null;
-    var dialog=document.getElementById('restore-dialog');
-    if(dialog) dialog.remove();
-    var theme=S.theme;
-    S=JSON.parse(initialAppState);S.theme=theme;
-    AUTH.ready=true;AUTH.user=user;AUTH.busy=false;AUTH.error='';AUTH.message='';
-    if(user){
-      lsRosterLoad();lsCareerLoad();
-      db=firebase.database();render();fbListen();
-    }else render();
-  },function(error){AUTH.error=authError(error);AUTH.ready=false;renderAuth();});
-}
-function logout(){
-  if(AUTH.busy) return;
-  AUTH.busy=true;render();
-  firebase.auth().signOut().catch(function(error){
-    AUTH.busy=false;toast(authError(error));render();
-  });
-}
-
 
 function sortRoster(){
   S.roster.sort(function(a,b){return a.name.localeCompare(b.name,'ko');});
@@ -685,7 +577,7 @@ function fbSaveRoster(){
 }
 function fbSaveGnames(){
   if(!db){return;}
-  db.ref('groupNames').set(S.groupNames).catch(function(){});
+  db.ref('groupNames').set(S.groupNames).catch(function(){toast('저장 권한이나 연결을 확인해 주세요.');});
 }
 
 // 대진표 세션 저장 (teams, matches, blockInfo, 설정 포함)
@@ -700,7 +592,7 @@ function fbSaveSession(){
     lateArrivals:S.lateArrivals, statsSaved:S.statsSaved,
     tSelected:S.tSelected, tTeams:S.tTeams, tBracket:S.tBracket, tStep:S.tStep
   };
-  db.ref('session').set(session).catch(function(){});
+  db.ref('session').set(session).catch(function(){toast('저장 권한이나 연결을 확인해 주세요.');});
 }
 
 // 누적 전적 저장 (Firebase 'stats' + 로컬 폴백)
@@ -710,11 +602,11 @@ function fbSaveStats(){
   db.ref('stats').set(S.career).catch(function(e){toast('전적 저장 실패: '+e.message);});
 }
 
-// 로컬 폴백 (오프라인/Firebase 미연결 시)
-function lsRosterSave(){try{localStorage.setItem('bdm_roster',JSON.stringify(S.roster));}catch(e){}}
-function lsRosterLoad(){try{var r=localStorage.getItem('bdm_roster');if(r)S.roster=JSON.parse(r);}catch(e){}}
-function lsCareerSave(){try{localStorage.setItem('bdm_career',JSON.stringify(S.career));}catch(e){}}
-function lsCareerLoad(){try{var c=localStorage.getItem('bdm_career');if(c)S.career=JSON.parse(c)||{};}catch(e){}}
+// Club data stays in memory and is always read from its scoped server path.
+function lsRosterSave(){}
+function lsRosterLoad(){}
+function lsCareerSave(){}
+function lsCareerLoad(){}
 
 // 테마만 localStorage
 function lsSave(){try{localStorage.setItem('bdm_theme',S.theme);}catch(e){}}
@@ -727,59 +619,26 @@ function lsLoad(){
 // Firebase 실시간 리스너
 function fbListen(){
   var generation=authGeneration;
-  function active(){return AUTH.user&&generation===authGeneration;}
+  function active(){return AUTH.user&&generation===authGeneration&&allowedClub(AUTH.clubId);}
+  function denied(){if(!active())return;AUTH.error='동호회 데이터 접근 권한이 변경되었습니다. 관리자에게 문의해 주세요.';resetClubData();AUTH.view='clubs';render();}
   db.ref('roster').on('value',function(snap){
-    if(!active()) return;
-    var data=snap.val();
-    var roster=[];
-    if(data){
-      // Firebase는 배열을 객체로 저장할 수 있음 → 변환
-      if(Array.isArray(data)){
-        roster=data.filter(function(p){return p&&p.name;});
-      } else if(typeof data==='object'){
-        var keys=Object.keys(data);
-        for(var i=0;i<keys.length;i++){
-          if(data[keys[i]]&&data[keys[i]].name) roster.push(data[keys[i]]);
-        }
-      }
-    }
-    if(roster.length>0){
-      S.roster=roster;
-      S.roster.sort(function(a,b){return a.name.localeCompare(b.name,'ko');});
-      lsRosterSave();
-      render();
-    } else if(S.roster.length>0){
-      // Firebase 비어있고 로컬에 있으면 Firebase에 업로드
-      db.ref('roster').set(S.roster);
-    }
-  });
+    if(!active())return;
+    var data=snap.val()||{};
+    S.roster=Object.values(data).filter(function(p){return p&&p.name;});
+    sortRoster();render();
+  },denied);
   db.ref('groupNames').on('value',function(snap){
-    if(!active()) return;
-    var data=snap.val();
-    if(data&&Array.isArray(data))S.groupNames=data;
-    render();
-  });
-  // 누적 전적
+    if(!active())return;
+    var data=snap.val();S.groupNames=Array.isArray(data)?data:['1그룹','2그룹'];render();
+  },denied);
   db.ref('stats').on('value',function(snap){
-    if(!active()) return;
-    var data=snap.val();
-    if(data&&typeof data==='object'&&!Array.isArray(data)){
-      S.career=data;
-      lsCareerSave();
-      render();
-    } else if(Object.keys(S.career).length>0){
-      // Firebase 비어있고 로컬에 있으면 업로드
-      db.ref('stats').set(S.career);
-    }
-  });
-  // 대진표 세션 불러오기 — 물어보고 복구
-  db.ref('session').once('value',function(snap){
-    if(!active()) return;
-    var d=snap.val();
-    if(!d||!d.teams||!d.teams.length) return;
-    // 확인 팝업
-    showRestoreDialog(d);
-  });
+    if(!active())return;
+    var data=snap.val();S.career=data&&typeof data==='object'&&!Array.isArray(data)?data:{};render();
+  },denied);
+  db.ref('session').once('value').then(function(snap){
+    if(!active())return;
+    var d=snap.val();if(d&&d.teams&&d.teams.length)showRestoreDialog(d);
+  }).catch(denied);
 }
 
 // 세션 복구 확인 다이얼로그
@@ -1466,7 +1325,7 @@ function shareApp(){
   var title='⚡🏸 피카츄의 배드민턴매치';
   var text='피카츄의 배드민턴매치 앱이에요! 팀 자동 배정, 점수 기록, 순위 확인까지 한 번에 😊';
   if(navigator.share){
-    navigator.share({title:title,text:text,url:url}).catch(function(){});
+    navigator.share({title:title,text:text,url:url}).catch(function(){toast('저장 권한이나 연결을 확인해 주세요.');});
   } else {
     // 공유 API 없으면 URL 복사
     if(navigator.clipboard&&navigator.clipboard.writeText){
@@ -3025,7 +2884,7 @@ function renderRosterList(){
 }
 
 function render(){
-  if(!AUTH.user){renderAuth();return;}
+  if(!clubCanUse()){renderPortal();return;}
   var themeIcon=S.theme==='dark'?'☀️':'🌙';
   var tabRoster='<button class="tab'+(S.tab==='roster'?' active':'')+'" data-a="gotab" data-v="roster">👥 명단</button>';
   var tabMatch='<button class="tab'+(S.tab==='match'?' active':'')+'" data-a="gotab" data-v="match">🏸 매치</button>';
@@ -3057,12 +2916,12 @@ function render(){
       +'</div>'
       +'<button class="theme-btn" data-a="thm" aria-label="화면 밝기 바꾸기">'+themeIcon+'</button>'
     +'</div>'
-    +'<div class="account-bar"><span>'+authEscape(AUTH.user.email)+'</span><button class="btn gho" id="logout-btn"'+(AUTH.busy?' disabled':'')+'>로그아웃</button></div>'
+    +accountBar()
     +'<div class="tabs">'+tabRoster+tabMatch+tabTour+'</div>'
     +'<div class="content">'+bodyHtml+'</div>'
     +'</div>';
 
-  document.getElementById('logout-btn').onclick=logout;
+  bindPortal();
 
   // 포커스
   var ni=document.getElementById('rni');
@@ -3330,7 +3189,7 @@ function doSwap(keyA,keyB){
 }
 
 function act(a,d){
-  if(!AUTH.user) return;
+  if(!clubCanUse()) return;
   d=d||{};
 
   // ── 공통 ──────────────────────────────────────────────────────
@@ -3634,3 +3493,4 @@ loadFirebase(); // Firebase 동적 로드 → 연결 후 자동 re-render
 </script>
 </body>
 </html>
+
