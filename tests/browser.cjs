@@ -9,7 +9,8 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  html=html.replace('<script src="spark-access.js"></script>',()=>'<script>'+fs.readFileSync(path.join(__dirname,'../spark-access.js'),'utf8')+'</script>');
  html=html.replace('<link rel="stylesheet" href="club-auth.css">','<style>'+fs.readFileSync(path.join(__dirname,'../club-auth.css'),'utf8')+'</style>');
  const mock=`
- window.mock={reads:[],subscriptions:{},callbacks:[],uid:'member',data:{'access/profiles/member':{username:'tester',displayName:'테스터',status:'active',clubs:{A:true,B:true}},'access/superadmins/member':false,'access/clubs/A':{name:'동호회 A',status:'approved',code:'AAAAAAAAAA'},'access/clubs/B':{name:'동호회 B',status:'approved',code:'BBBBBBBBBB'},'access/members/A/member':{status:'pending',role:'member'},'access/members/B/member':{status:'approved',role:'admin'},'clubData/A/roster':[{name:'가나다',gender:'남',level:'C'}],'clubData/B/roster':[{name:'라마바',gender:'여',level:'C'}]}};
+ const savedClubs=new Map();Object.defineProperty(window,'localStorage',{value:{getItem:k=>savedClubs.get(k)||null,setItem:(k,v)=>savedClubs.set(k,v)}});
+ window.mock={reads:[],subscriptions:{},callbacks:[],uid:'member',data:{'access/profiles/member':{username:'tester',displayName:'테스터',status:'active',clubs:{A:true,B:true}},'access/superadmins/member':false,'access/clubs/A':{name:'동호회 A',status:'approved',code:'AAAAAAAAAA'},'access/clubs/B':{name:'동호회 B',status:'approved',code:'BBBBBBBBBB'},'access/members/A/member':{status:'pending',role:'member'},'access/members/B/member':{status:'pending',role:'admin'},'clubData/A/roster':[{name:'가나다',gender:'남',level:'C'}],'clubData/B/roster':[{name:'라마바',gender:'여',level:'C'}]}};
  mock.snap=function(p){return {val:()=>mock.data[p]||null}};
  mock.emit=function(p,v){mock.data[p]=v;(mock.subscriptions[p]||[]).slice().forEach(cb=>cb(mock.snap(p)))};
  var authCallback;
@@ -28,12 +29,19 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  assert.equal(await page.evaluate(()=>mock.reads.some(p=>p.startsWith('clubData/'))),false);
  assert.equal(await page.locator('[data-portal=open][data-club=A]').count(),0);
  await page.evaluate(()=>mock.emit('access/members/A/member',{status:'approved',role:'member'}));
- await page.locator('[data-portal=open][data-club=A]').click();
+ await page.waitForFunction(()=>AUTH.view==='app'&&AUTH.clubId==='A');
+ assert.equal(await page.locator('[data-portal=super], [data-portal=logout], #join-form').count(),0);
  assert.equal(await page.evaluate(()=>S.roster[0].name),'가나다');
- await page.locator('[data-portal=clubs]').click();await page.locator('[data-portal=open][data-club=B]').click();
+ await page.locator('[data-portal=clubs]').click();
+ await page.evaluate(()=>mock.emit('access/members/B/member',{status:'approved',role:'admin'}));
+ assert.equal(await page.evaluate(()=>AUTH.view),'clubs');
+ await page.locator('[data-portal=open][data-club=B]').click();
  assert.equal(await page.evaluate(()=>S.roster[0].name),'라마바');
  await page.evaluate(()=>mock.callbacks.find(x=>x.p==='clubData/A/roster').cb({val:()=>[{name:'stale'}]}));
  assert.equal(await page.evaluate(()=>S.roster[0].name),'라마바');
+ await page.locator('[data-portal=clubs]').click();await page.locator('[data-portal=logout]').click();
+ await page.locator('#username').fill('tester');await page.locator('#password').fill('password123');await page.locator('#portal-login button[type=submit]').click();
+ await page.waitForFunction(()=>AUTH.view==='app'&&AUTH.clubId==='B');
  await page.evaluate(()=>mock.emit('access/members/B/member',{status:'removed',role:'member'}));
  await page.getByRole('heading',{name:'내 동호회'}).waitFor();assert.equal(await page.evaluate(()=>S.roster.length),0);
  await page.evaluate(()=>mock.emit('access/members/A/member',{status:'approved',role:'admin'}));
@@ -44,7 +52,12 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  assert.equal(await page.evaluate(()=>!!window.injected),false);assert.equal(await page.locator('img').count(),0);
  await page.evaluate(()=>mock.emit('access/profiles/member',{username:'tester',displayName:'테스터',status:'suspended',clubs:{A:true,B:true}}));
  await page.getByRole('heading',{name:'사용 중지'}).waitFor();assert.equal(await page.evaluate(()=>db),null);
- await page.locator('[data-portal=logout]').click();await page.locator('#portal-login').waitFor();assert.deepEqual(errors,[]);
- console.log('PASS: ID login, pending gate, club isolation, stale callbacks, removal, admin demotion, XSS escaping, account suspension, logout');
+ await page.locator('[data-portal=logout]').click();await page.locator('#portal-login').waitFor();await page.evaluate(()=>mock.emit('access/profiles/member',{username:'tester',displayName:'테스터',status:'active',clubs:{A:true,B:true}}));
+ await page.locator('#username').fill('tester');await page.locator('#password').fill('password123');await page.locator('#portal-login button[type=submit]').click();
+ await page.waitForFunction(()=>AUTH.view==='app'&&AUTH.clubId==='A');
+ await page.locator('[data-portal=clubs]').click();await page.getByRole('heading',{name:'설정',exact:true}).waitFor();
+ await page.locator('[data-portal=home]').click();await page.waitForFunction(()=>AUTH.view==='app');
+ assert.deepEqual(errors,[]);
+ console.log('PASS: automatic club home, remembered club, settings navigation, ID login, pending gate, club isolation, stale callbacks, removal, admin demotion, XSS escaping, account suspension, logout');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

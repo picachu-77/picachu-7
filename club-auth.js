@@ -1,5 +1,5 @@
-/* Account and club portal. Permissions are enforced again by Functions and DB rules. */
-var AUTH={ready:false,user:null,profile:null,profileLoaded:false,superadmin:false,busy:false,error:'',message:'',mode:'login',username:'',view:'clubs',clubId:null,clubs:{},memberships:{},adminMembers:{},allAccess:null};
+/* Account and club portal. Permissions are enforced by DB rules. */
+var AUTH={ready:false,user:null,profile:null,profileLoaded:false,superadmin:false,busy:false,error:'',message:'',mode:'login',username:'',view:'home',clubId:null,clubs:{},memberships:{},adminMembers:{},allAccess:null};
 var authGeneration=0,identityGeneration=0,rawDb=null,accessWatches=[],clubWatches=[],adminWatch=null,boundClub=null;
 function authEscape(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function authError(e){
@@ -59,16 +59,29 @@ function activeProfile(){return AUTH.user&&AUTH.profile&&AUTH.profile.status==='
 function allowedClub(cid){var c=AUTH.clubs[cid],m=AUTH.memberships[cid];return !!(activeProfile()&&c&&c.status==='approved'&&(AUTH.superadmin||(m&&m.status==='approved')));}
 function clubCanUse(){return AUTH.view==='app'&&allowedClub(AUTH.clubId)&&boundClub===AUTH.clubId;}
 function canManageClub(cid){if(!cid||!AUTH.clubs[cid])return false;var m=AUTH.memberships[cid];return !!(activeProfile()&&(AUTH.superadmin||(allowedClub(cid)&&m&&m.role==='admin')));}
+function preferredClub(){
+ var ids=Object.keys(AUTH.profile&&AUTH.profile.clubs||{}).sort().filter(allowedClub),saved='';
+ try{saved=localStorage.getItem('badminton:lastClub:'+AUTH.user.uid)||'';}catch(e){}
+ return ids.includes(saved)?saved:ids[0];
+}
+function autoOpenClub(){
+ if(AUTH.view!=='home'||!activeProfile()||AUTH.registering)return false;
+ var ids=Object.keys(AUTH.profile.clubs||{});
+ if(!ids.every(function(cid){return Object.prototype.hasOwnProperty.call(AUTH.clubs,cid)&&Object.prototype.hasOwnProperty.call(AUTH.memberships,cid);}))return false;
+ var cid=preferredClub();if(!cid)return false;
+ openClub(cid);return true;
+}
 function refreshAccess(){
   if(!activeProfile()||!allowedClub(AUTH.clubId)){if(boundClub)resetClubData();if(AUTH.view==='app')AUTH.view='clubs';}
   if(AUTH.view==='clubAdmin'&&!canManageClub(AUTH.clubId)){stopAdmin();AUTH.view='clubs';}
   if(AUTH.view==='super'&&!AUTH.superadmin){stopAdmin();AUTH.view='clubs';}
+  if(autoOpenClub())return;
   render();
 }
 function startAuth(){
   firebase.auth().onAuthStateChanged(function(user){
     identityGeneration++;stopList(accessWatches);stopList(clubWatches);stopAdmin();resetClubData();
-    AUTH.user=user;AUTH.ready=true;AUTH.busy=false;AUTH.profile=null;AUTH.profileLoaded=false;AUTH.superadmin=false;AUTH.clubs={};AUTH.memberships={};AUTH.clubId=null;AUTH.view='clubs';AUTH.error='';AUTH.message='';
+    AUTH.user=user;AUTH.ready=true;AUTH.busy=false;AUTH.profile=null;AUTH.profileLoaded=false;AUTH.superadmin=false;AUTH.clubs={};AUTH.memberships={};AUTH.clubId=null;AUTH.view='home';AUTH.error='';AUTH.message='';
     if(!user){render();return;}
     rawDb=firebase.database();var uid=user.uid,ids='';
     watch('access/profiles/'+uid,function(p){
@@ -89,6 +102,7 @@ function startAuth(){
 function openClub(cid){
   if(!allowedClub(cid)){AUTH.error='동호회와 회원 승인이 필요합니다.';render();return;}
   stopAdmin();resetClubData();AUTH.clubId=cid;AUTH.view='app';boundClub=cid;AUTH.error='';AUTH.message='';
+  try{localStorage.setItem('badminton:lastClub:'+AUTH.user.uid,cid);}catch(e){}
   db={ref:function(path){return rawDb.ref('clubData/'+cid+'/'+path);}};
   render();fbListen();
 }
@@ -98,7 +112,9 @@ function logout(){
 }
 function accountBar(){
   var name=AUTH.profile?AUTH.profile.displayName+' · '+AUTH.profile.username:'계정';
-  return '<div class="account-bar"><span>'+authEscape((AUTH.clubs[AUTH.clubId]||{}).name||'')+' · '+authEscape(name)+'</span>'+button('동호회 선택','clubs')+(canManageClub(AUTH.clubId)?button('동호회 관리','club-admin'):'')+(AUTH.superadmin?button('총관리','super'):'')+button('로그아웃','logout')+'</div>';
+  var controls=button('설정','clubs','aria-label="설정 열기"');
+  if(AUTH.view!=='app')controls=(preferredClub()?button('동호회로 돌아가기','home'):'')+controls+(AUTH.superadmin?button('총관리','super'):'')+button('로그아웃','logout');
+  return '<div class="account-bar"><span>'+authEscape([(AUTH.clubs[AUTH.clubId]||{}).name,name].filter(Boolean).join(' · '))+'</span>'+controls+'</div>';
 }
 var statusLabels={pending:'승인 대기',approved:'승인됨',rejected:'반려',removed:'탈퇴 처리',suspended:'사용 중지',active:'사용 중'};
 function statusLabel(v){return statusLabels[v]||'확인 중';}
@@ -148,7 +164,7 @@ function renderPortal(){
  else if(!activeProfile())body='<h1 class="ttl">'+statusLabel(AUTH.profile.status)+'</h1><p>계정 접근 권한이 없습니다. 총관리자에게 문의해 주세요.</p>';
  else if(AUTH.view==='super'&&AUTH.superadmin)body=superHtml();
  else if(AUTH.view==='clubAdmin'&&canManageClub(AUTH.clubId))body='<h1 class="ttl">'+authEscape((AUTH.clubs[AUTH.clubId]||{}).name)+' 회원 관리</h1><p class="sub">가입 승인 · 탈퇴 처리 · 관리자 권한 관리</p><section class="card">'+memberRows(AUTH.clubId,AUTH.adminMembers)+'</section>';
- else body=(AUTH.user.email==='rnftm312@gmail.com'?'<section class="card"><h2>꿀배 초기 설정</h2><p class="sub">총관리자를 연결하고 기존 공용 자료를 꿀배로 복사합니다. 이미 가져온 자료는 덮어쓰지 않습니다.</p>'+button('총관리자·꿀배 설정','setup-kkulbae','','pri')+'</section>':'')+'<h1 class="ttl">내 동호회</h1><p class="sub">가입과 동호회 생성 승인이 완료되면 입장할 수 있어요.</p><div class="portal-grid">'+clubCards()+'</div>'+formsHtml();
+ else body=(AUTH.view==='clubs'?'<h1 class="ttl">설정</h1>':'')+(AUTH.user.email==='rnftm312@gmail.com'?'<section class="card"><h2>꿀배 초기 설정</h2><p class="sub">총관리자를 연결하고 기존 공용 자료를 꿀배로 복사합니다. 이미 가져온 자료는 덮어쓰지 않습니다.</p>'+button('총관리자·꿀배 설정','setup-kkulbae','','pri')+'</section>':'')+'<h1 class="ttl">내 동호회</h1><p class="sub">가입과 동호회 생성 승인이 완료되면 입장할 수 있어요.</p><div class="portal-grid">'+clubCards()+'</div>'+formsHtml();
  document.getElementById('app').innerHTML='<main class="wrap portal-wrap">'+accountBar()+notice()+body+'</main>';
  bindPortal();bindForms();
 }
@@ -176,6 +192,7 @@ function bindPortal(){
   else if(action==='logout')logout();
   else if(action==='setup-kkulbae'){if(confirm('기존 공용 자료를 꿀배로 복사하고 총관리자를 설정할까요? 기존 자료는 보존됩니다.')){AUTH.busy=true;render();setupKkulbae().then(function(message){AUTH.message=message;}).catch(function(e){AUTH.error=authError(e);}).finally(function(){AUTH.busy=false;render();});}}
   else if(action==='complete-profile'){AUTH.busy=true;completeProfile().catch(function(e){AUTH.error=authError(e);}).finally(function(){AUTH.busy=false;render();});}
+  else if(action==='home'){var cid=preferredClub();if(cid)openClub(cid);}
   else if(action==='clubs'){stopAdmin();resetClubData();AUTH.view='clubs';render();}
   else if(action==='open')openClub(d.club);
   else if(action==='club-admin')showAdmin(d.club||AUTH.clubId);
