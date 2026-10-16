@@ -58,7 +58,7 @@ function resetClubData(){
 function activeProfile(){return AUTH.user&&AUTH.profile&&AUTH.profile.status==='active';}
 function allowedClub(cid){var c=AUTH.clubs[cid],m=AUTH.memberships[cid];return !!(activeProfile()&&c&&c.status==='approved'&&(AUTH.superadmin||(m&&m.status==='approved')));}
 function clubCanUse(){return AUTH.view==='app'&&allowedClub(AUTH.clubId)&&boundClub===AUTH.clubId;}
-function canManageClub(cid){if(!cid||!AUTH.clubs[cid])return false;var m=AUTH.memberships[cid];return !!(activeProfile()&&(AUTH.superadmin||(allowedClub(cid)&&m&&m.role==='admin')));}
+function canManageClub(cid){if(!cid||!AUTH.clubs[cid]||AUTH.clubs[cid].status==='rejected')return false;var m=AUTH.memberships[cid];return !!(activeProfile()&&(AUTH.superadmin||(allowedClub(cid)&&m&&m.role==='admin')));}
 function preferredClub(){
  var ids=Object.keys(AUTH.profile&&AUTH.profile.clubs||{}).sort().filter(allowedClub),saved='';
  try{saved=localStorage.getItem('badminton:lastClub:'+AUTH.user.uid)||'';}catch(e){}
@@ -66,7 +66,7 @@ function preferredClub(){
 }
 function autoOpenClub(){
  if(AUTH.view!=='home'||!activeProfile()||AUTH.registering)return false;
- var ids=Object.keys(AUTH.profile.clubs||{});
+ var ids=Object.keys(AUTH.profile.clubs||{}).filter(function(cid){return !AUTH.clubs[cid]||AUTH.clubs[cid].status!=='rejected';});
  if(!ids.every(function(cid){return Object.prototype.hasOwnProperty.call(AUTH.clubs,cid)&&Object.prototype.hasOwnProperty.call(AUTH.memberships,cid);}))return false;
  var cid=preferredClub();if(!cid)return false;
  openClub(cid);return true;
@@ -124,7 +124,7 @@ function accountBar(){
 var statusLabels={pending:'승인 대기',approved:'승인됨',rejected:'반려',removed:'탈퇴 처리',suspended:'사용 중지',active:'사용 중'};
 function statusLabel(v){return statusLabels[v]||'확인 중';}
 function clubCards(){
-  var ids=Object.keys(AUTH.profile.clubs||{});
+  var ids=Object.keys(AUTH.profile.clubs||{}).filter(function(cid){return !AUTH.clubs[cid]||AUTH.clubs[cid].status!=='rejected';});
   if(!ids.length)return '<p class="sub">아직 신청한 동호회가 없습니다. 코드로 가입하거나 새 동호회를 신청해 주세요.</p>';
   return ids.map(function(cid){var c=AUTH.clubs[cid],m=AUTH.memberships[cid];if(!c||!m)return '<p>동호회 확인 중…</p>';
     return '<section class="card"><h2>'+authEscape(c.name)+'</h2><p class="sub">동호회 '+statusLabel(c.status)+' · 내 가입 '+statusLabel(m.status)+' · '+(m.role==='admin'?'동호회 관리자':'회원')+'</p>'
@@ -148,7 +148,7 @@ function memberRows(cid,members){
 }
 function superHtml(){
  var a=AUTH.allAccess;if(!a)return '<p>전체 현황을 불러오는 중입니다.</p>';
- var clubs=Object.keys(a.clubs||{}).map(function(cid){var c=a.clubs[cid],attr='data-club="'+authEscape(cid)+'"',buttons='';
+ var clubs=Object.keys(a.clubs||{}).filter(function(cid){return a.clubs[cid].status!=='rejected';}).map(function(cid){var c=a.clubs[cid],attr='data-club="'+authEscape(cid)+'"',buttons='';
   if(c.status==='pending')buttons=button('동호회 승인','review-club',attr+' data-status="approved"','pri')+button('반려','review-club',attr+' data-status="rejected"');
   if(['approved','suspended'].includes(c.status))buttons=button(c.status==='suspended'?'운영 재개':'동호회 사용 중지','club-status',attr+' data-status="'+(c.status==='suspended'?'approved':'suspended')+'"');
   return '<section class="card"><h3>'+authEscape(c.name)+'</h3><p class="sub">'+statusLabel(c.status)+' · 코드 '+authEscape(c.code)+'</p><div class="brow">'+buttons+button('회원 관리','club-admin',attr)+(c.status==='approved'?button('동호회 입장','open',attr):'')+'</div></section>';
