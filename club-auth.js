@@ -15,7 +15,7 @@ function renderAuth(){
     +field('username','아이디','text','required minlength="4" maxlength="24" pattern="[a-zA-Z0-9][a-zA-Z0-9_]{3,23}" autocomplete="username" value="'+authEscape(AUTH.username)+'"'+disabled)
     +'<p class="sub">영문·숫자·밑줄 4~24자 (대소문자 구분 없음)</p>'
     +field('password','비밀번호','password','required '+(signup?'minlength="8"':'')+' maxlength="128" autocomplete="'+(signup?'new-password':'current-password')+'"'+disabled)
-    +(signup?field('password-confirm','비밀번호 확인','password','required minlength="8" maxlength="128" autocomplete="new-password"'+disabled)+field('display-name','이름 / 활동명','text','required maxlength="40" autocomplete="nickname"'+disabled)
+    +(signup?field('password-confirm','비밀번호 확인','password','required minlength="8" maxlength="128" autocomplete="new-password"'+disabled)+field('display-name','본인 이름','text','required maxlength="40" autocomplete="name" placeholder="본인 이름을 입력해 주세요"'+disabled)
       +'<label class="portal-field" for="signup-kind">가입 방법<select class="inp" id="signup-kind"'+disabled+'><option value="join">동호회 코드로 가입 신청</option><option value="create">새 동호회 생성 신청</option></select></label>'
       +'<div id="signup-join">'+field('signup-code','동호회 코드','text','required maxlength="10" autocapitalize="characters"'+disabled)+'</div>'
       +'<div id="signup-create" hidden>'+field('signup-name','새 동호회 이름','text','maxlength="60"'+disabled)+'</div><p class="sub">동호회 가입은 동호회 관리자가, 신규 동호회는 총관리자가 승인합니다.</p>':'')
@@ -110,8 +110,12 @@ function logout(){
   if(AUTH.busy)return;AUTH.busy=true;resetClubData();render();
   firebase.auth().signOut().catch(function(e){AUTH.error=authError(e);AUTH.view='clubs';}).finally(function(){AUTH.busy=false;render();});
 }
+function accountDisplayName(profile){
+  if(profile.username==='chease312'&&profile.displayName==='chease312')return '최승현';
+  return profile.displayName;
+}
 function accountBar(){
-  var name=AUTH.profile?AUTH.profile.displayName+' · '+AUTH.profile.username:'계정';
+  var name=AUTH.profile?accountDisplayName(AUTH.profile):'계정';
   var controls=button('설정','clubs','aria-label="설정 열기"');
   if(AUTH.view!=='app')controls=(preferredClub()?button('동호회로 돌아가기','home'):'')+controls+(AUTH.superadmin?button('총관리','super'):'')+button('로그아웃','logout');
   return '<div class="account-bar"><span>'+authEscape([(AUTH.clubs[AUTH.clubId]||{}).name,name].filter(Boolean).join(' · '))+'</span>'+controls+'</div>';
@@ -138,7 +142,7 @@ function memberRows(cid,members){
     if(AUTH.superadmin&&m.role==='admin'&&(AUTH.clubs[cid]||{}).ownerUid!==uid)actions+=button('책임 관리자 지정','transfer-owner',attrs);
     actions+=button('동호회 탈퇴 처리','member',attrs+' data-operation="remove"','dan');
   }
-  return '<div class="portal-row"><div><strong>'+authEscape(m.displayName)+'</strong> <span>'+authEscape(m.username)+'</span><p class="sub">'+statusLabel(m.status)+' · '+(m.role==='admin'?((AUTH.clubs[cid]||{}).ownerUid===uid?'책임 관리자':'관리자'):'회원')+'</p></div><div class="brow">'+actions+'</div></div>';
+  return '<div class="portal-row"><div><strong>'+authEscape(accountDisplayName(m))+'</strong> <span>'+authEscape(m.username)+'</span><p class="sub">'+statusLabel(m.status)+' · '+(m.role==='admin'?((AUTH.clubs[cid]||{}).ownerUid===uid?'책임 관리자':'관리자'):'회원')+'</p></div><div class="brow">'+actions+'</div></div>';
  }).join('')||'<p>회원 정보를 불러오는 중입니다.</p>';
 }
 function superHtml(){
@@ -149,7 +153,7 @@ function superHtml(){
   return '<section class="card"><h3>'+authEscape(c.name)+'</h3><p class="sub">'+statusLabel(c.status)+' · 코드 '+authEscape(c.code)+'</p><div class="brow">'+buttons+button('회원 관리','club-admin',attr)+(c.status==='approved'?button('동호회 입장','open',attr):'')+'</div></section>';
  }).join('');
  var accounts=Object.keys(a.profiles||{}).map(function(uid){var p=a.profiles[uid],attr='data-uid="'+authEscape(uid)+'"',isRoot=a.superadmins&&a.superadmins[uid];
-  return '<div class="portal-row"><div><strong>'+authEscape(p.displayName)+'</strong> '+authEscape(p.username)+'<p class="sub">'+statusLabel(p.status)+(isRoot?' · 총관리자':'')+'</p></div><div class="brow">'
+  return '<div class="portal-row"><div><strong>'+authEscape(accountDisplayName(p))+'</strong> '+authEscape(p.username)+'<p class="sub">'+statusLabel(p.status)+(isRoot?' · 총관리자':'')+'</p></div><div class="brow">'
     +(uid===AUTH.user.uid?'<span>내 계정</span>':(p.status==='active'?button('계정 사용 중지','account',attr+' data-status="suspended"')+button('앱 탈퇴 처리','account',attr+' data-status="removed"','dan'):button('계정 복구','account',attr+' data-status="active"')))
     +(p.status==='active'?button(isRoot?'총관리자 권한 회수':'총관리자 지정','super-role',attr+' data-enabled="'+(!isRoot)+'"'):'')+'</div></div>';
  }).join('');

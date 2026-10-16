@@ -22,6 +22,7 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  html=html.replace('<body>','<body><script>'+mock+'</script>');
  await page.setContent(html);await page.waitForFunction(()=>AUTH.ready);
  assert.equal(await page.locator('input[type=email]').count(),0);
+ assert.equal(await page.evaluate(()=>accountDisplayName({username:'chease312',displayName:'chease312'})),'최승현');
  assert.equal(await page.evaluate(()=>loginAddress('chease312')),'rnftm312@gmail.com');
  assert.equal(await page.evaluate(()=>loginAddress('NewPlayer')),'newplayer@users.badminton.invalid');
  await page.locator('#username').fill('tester');await page.locator('#password').fill('password123');await page.locator('#portal-login button[type=submit]').click();
@@ -32,6 +33,7 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  await page.waitForFunction(()=>AUTH.view==='app'&&AUTH.clubId==='A');
  assert.equal(await page.locator('[data-portal=super], [data-portal=logout], #join-form').count(),0);
  assert.equal(await page.evaluate(()=>S.roster[0].name),'가나다');
+ assert.equal(await page.locator('.account-bar span').innerText(),'동호회 A · 테스터');
  await page.locator('[data-portal=clubs]').click();
  await page.evaluate(()=>mock.emit('access/members/B/member',{status:'approved',role:'admin'}));
  assert.equal(await page.evaluate(()=>AUTH.view),'clubs');

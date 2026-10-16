@@ -51,6 +51,8 @@ async function sparkManage(data){
 async function callServer(name,data){
  if(name==='loginById'){await firebase.auth().signInWithEmailAndPassword(loginAddress(data.username),data.password);return {ok:true};}
  if(name==='registerAccount'){
+  data.displayName=String(data.displayName||'').trim();
+  if(!data.displayName||data.displayName.length>40)throw Error('본인 이름을 1~40자로 입력해 주세요.');
   if(String(data.password||'').length<8)throw Error('비밀번호는 8자 이상으로 입력해 주세요.');
   if(String(data.username).toLowerCase()==='chease312')throw Error('이미 사용 중인 아이디입니다.');
   AUTH.registering=true;
