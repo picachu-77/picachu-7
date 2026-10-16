@@ -1,0 +1,202 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "access": {
+      ".read": "(auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && (!root.child('access/profiles').child(auth.uid).child('validAfter').exists() || auth.token.auth_time >= root.child('access/profiles').child(auth.uid).child('validAfter').val()) && root.child('access/superadmins').child(auth.uid).val() === true)",
+      "profiles": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid"
+        }
+      },
+      "superadmins": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid"
+        }
+      },
+      "clubs": {
+        "$club": {
+          ".read": "auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && (!root.child('access/profiles').child(auth.uid).child('validAfter').exists() || auth.token.auth_time >= root.child('access/profiles').child(auth.uid).child('validAfter').val()) && root.child('access/profiles').child(auth.uid).child('clubs').child($club).val() === true"
+        }
+      },
+      "members": {
+        "$club": {
+          ".read": "(auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && (!root.child('access/profiles').child(auth.uid).child('validAfter').exists() || auth.token.auth_time >= root.child('access/profiles').child(auth.uid).child('validAfter').val()) && root.child('access/clubs').child($club).child('status').val() === 'approved' && root.child('access/members').child($club).child(auth.uid).child('status').val() === 'approved' && root.child('access/members').child($club).child(auth.uid).child('role').val() === 'admin')",
+          "$uid": {
+            ".read": "auth != null && auth.uid === $uid"
+          }
+        }
+      }
+    },
+    "clubData": {
+      "$club": {
+        ".read": "auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && (!root.child('access/profiles').child(auth.uid).child('validAfter').exists() || auth.token.auth_time >= root.child('access/profiles').child(auth.uid).child('validAfter').val()) && root.child('access/clubs').child($club).child('status').val() === 'approved' && (root.child('access/superadmins').child(auth.uid).val() === true || root.child('access/members').child($club).child(auth.uid).child('status').val() === 'approved')",
+        ".write": "auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && (!root.child('access/profiles').child(auth.uid).child('validAfter').exists() || auth.token.auth_time >= root.child('access/profiles').child(auth.uid).child('validAfter').val()) && root.child('access/clubs').child($club).child('status').val() === 'approved' && (root.child('access/superadmins').child(auth.uid).val() === true || root.child('access/members').child($club).child(auth.uid).child('status').val() === 'approved')",
+        "$other": {
+          ".validate": "$other === 'roster' || $other === 'stats' || $other === 'session' || $other === 'groupNames'"
+        },
+        "roster": {
+          ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+          "$value0": {
+            ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+            "$value1": {
+              ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+              "$value2": {
+                ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                "$value3": {
+                  ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                  "$value4": {
+                    ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                    "$value5": {
+                      ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                      "$value6": {
+                        ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                        "$value7": {
+                          ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                          "$value8": {
+                            ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                            "$value9": {
+                              ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                              "$value10": {
+                                ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                                "$value11": {
+                                  ".validate": "!newData.hasChildren() && (!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "stats": {
+          ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+          "$value0": {
+            ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/))) && $value0.matches(/^[^<>\\\"'&]*$/)",
+            "$value1": {
+              ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+              "$value2": {
+                ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                "$value3": {
+                  ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                  "$value4": {
+                    ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                    "$value5": {
+                      ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                      "$value6": {
+                        ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                        "$value7": {
+                          ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                          "$value8": {
+                            ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                            "$value9": {
+                              ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                              "$value10": {
+                                ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                                "$value11": {
+                                  ".validate": "!newData.hasChildren() && (!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "session": {
+          ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+          "$value0": {
+            ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+            "$value1": {
+              ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+              "$value2": {
+                ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                "$value3": {
+                  ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                  "$value4": {
+                    ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                    "$value5": {
+                      ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                      "$value6": {
+                        ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                        "$value7": {
+                          ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                          "$value8": {
+                            ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                            "$value9": {
+                              ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                              "$value10": {
+                                ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                                "$value11": {
+                                  ".validate": "!newData.hasChildren() && (!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "groupNames": {
+          ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+          "$value0": {
+            ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+            "$value1": {
+              ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+              "$value2": {
+                ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                "$value3": {
+                  ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                  "$value4": {
+                    ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                    "$value5": {
+                      ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                      "$value6": {
+                        ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                        "$value7": {
+                          ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                          "$value8": {
+                            ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                            "$value9": {
+                              ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                              "$value10": {
+                                ".validate": "(!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))",
+                                "$value11": {
+                                  ".validate": "!newData.hasChildren() && (!newData.isString() || (newData.val().length <= 256 && newData.val().matches(/^[^<>\\\"'&]*$/)))"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "rateLimits": {
+      ".indexOn": [
+        "expiresAt"
+      ]
+    }
+  }
+}
