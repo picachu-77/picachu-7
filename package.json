@@ -2,7 +2,7 @@
   "name": "badminton-club-access",
   "private": true,
   "scripts": {
-    "test": "node tests/domain.test.js",
+    "test": "node --check club-auth.js && node --check spark-access.js && node --check scripts/build-rules.cjs && node tests/spark.test.cjs",
     "test:rules": "firebase emulators:exec --project demo-badminton-clubs --only database \"node tests/rules.test.cjs\"",
     "test:browser": "node tests/browser.cjs"
   },

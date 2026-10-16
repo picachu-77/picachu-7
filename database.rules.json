@@ -3,35 +3,106 @@
     ".read": false,
     ".write": false,
     "access": {
-      ".read": "(auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && (!root.child('access/profiles').child(auth.uid).child('validAfter').exists() || auth.token.auth_time >= root.child('access/profiles').child(auth.uid).child('validAfter').val()) && root.child('access/superadmins').child(auth.uid).val() === true)",
+      ".read": "(auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && root.child('access/superadmins').child(auth.uid).val() === true)",
+      "system": {
+        ".read": "auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active'",
+        "ownerUid": {
+          ".write": "!data.exists() && (auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active') && auth.token.email === 'rnftm312@gmail.com' && newData.val() === auth.uid",
+          ".validate": "newData.isString()"
+        }
+      },
       "profiles": {
         "$uid": {
-          ".read": "auth != null && auth.uid === $uid"
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "newData.exists() && ((auth != null && auth.uid === $uid && (!data.exists() || data.child('status').val() === 'active')) || ((auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && root.child('access/superadmins').child(auth.uid).val() === true) && data.exists()))",
+          ".validate": "newData.hasChildren(['username','displayName','status','createdAt'])",
+          "username": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 24 && newData.val().matches(/^[a-z0-9][a-z0-9_]{3,23}$/) && (!data.exists() || newData.val() === data.val()) && (data.exists() || (auth.uid === $uid && ((newData.val() !== 'chease312' && auth.token.email === newData.val() + '@users.badminton.invalid') || (auth.token.email === 'rnftm312@gmail.com' && newData.val() === 'chease312'))))"
+          },
+          "displayName": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 40 && (!data.exists() || newData.val() === data.val())"
+          },
+          "createdAt": {
+            ".validate": "newData.isNumber() && (!data.exists() || newData.val() === data.val()) && (data.exists() || newData.val() <= now)"
+          },
+          "status": {
+            ".validate": "newData.val().matches(/^(active|suspended|removed)$/) && ((!data.exists() && newData.val() === 'active') || newData.val() === data.val() || ((auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && root.child('access/superadmins').child(auth.uid).val() === true) && $uid !== root.child('access/system/ownerUid').val() && $uid !== auth.uid && root.child('access/superadmins').child($uid).val() !== true))"
+          },
+          "clubs": {
+            "$club": {
+              ".validate": "newData.val() === true && newData.parent().parent().parent().parent().child('members').child($club).child($uid).exists()"
+            }
+          },
+          "$other": {
+            ".validate": false
+          }
         }
       },
       "superadmins": {
         "$uid": {
-          ".read": "auth != null && auth.uid === $uid"
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "((auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && root.child('access/superadmins').child(auth.uid).val() === true) && $uid !== root.child('access/system/ownerUid').val() && root.child('access/profiles').child($uid).child('status').val() === 'active') || (!data.exists() && (auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active') && auth.uid === $uid && auth.token.email === 'rnftm312@gmail.com' && newData.val() === true && newData.parent().parent().child('system/ownerUid').val() === auth.uid)",
+          ".validate": "newData.val() === true"
         }
       },
       "clubs": {
         "$club": {
-          ".read": "auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && (!root.child('access/profiles').child(auth.uid).child('validAfter').exists() || auth.token.auth_time >= root.child('access/profiles').child(auth.uid).child('validAfter').val()) && root.child('access/profiles').child(auth.uid).child('clubs').child($club).val() === true"
+          ".read": "auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active'",
+          ".write": "newData.exists() && (auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active') && ((!data.exists() && newData.child('ownerUid').val() === auth.uid && newData.child('status').val() === 'pending') || ((auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && root.child('access/superadmins').child(auth.uid).val() === true) && data.exists()))",
+          ".validate": "$club.matches(/^[A-Z0-9]{10}$/) && newData.hasChildren(['name','code','ownerUid','status','createdAt']) && (newData.child('status').val() !== 'approved' || (newData.parent().parent().child('members').child($club).child(newData.child('ownerUid').val()).child('role').val() === 'admin' && newData.parent().parent().child('members').child($club).child(newData.child('ownerUid').val()).child('status').val() === 'approved'))",
+          "name": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 60"
+          },
+          "code": {
+            ".validate": "newData.val() === $club"
+          },
+          "ownerUid": {
+            ".validate": "newData.isString() && ((!data.exists() && newData.val() === auth.uid) || newData.val() === data.val() || ((auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && root.child('access/superadmins').child(auth.uid).val() === true) && root.child('access/members').child($club).child(newData.val()).child('role').val() === 'admin' && root.child('access/members').child($club).child(newData.val()).child('status').val() === 'approved' && root.child('access/profiles').child(newData.val()).child('status').val() === 'active'))"
+          },
+          "status": {
+            ".validate": "newData.isString() && ((!data.exists() && newData.val() === 'pending') || (data.val() === 'pending' && newData.val().matches(/^(pending|approved|rejected)$/)) || (data.val().matches(/^(approved|suspended)$/) && newData.val().matches(/^(approved|suspended)$/)) || (data.val() === 'rejected' && newData.val() === 'rejected'))"
+          },
+          "createdAt": {
+            ".validate": "newData.isNumber() && (!data.exists() || newData.val() === data.val()) && (data.exists() || newData.val() <= now)"
+          },
+          "$other": {
+            ".validate": false
+          }
         }
       },
       "members": {
         "$club": {
-          ".read": "(auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && (!root.child('access/profiles').child(auth.uid).child('validAfter').exists() || auth.token.auth_time >= root.child('access/profiles').child(auth.uid).child('validAfter').val()) && root.child('access/clubs').child($club).child('status').val() === 'approved' && root.child('access/members').child($club).child(auth.uid).child('status').val() === 'approved' && root.child('access/members').child($club).child(auth.uid).child('role').val() === 'admin')",
+          ".read": "(auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && root.child('access/clubs').child($club).child('status').val() === 'approved' && root.child('access/members').child($club).child(auth.uid).child('status').val() === 'approved' && root.child('access/members').child($club).child(auth.uid).child('role').val() === 'admin')",
           "$uid": {
-            ".read": "auth != null && auth.uid === $uid"
+            ".read": "auth != null && auth.uid === $uid",
+            ".write": "newData.exists() && ((!data.exists() && auth != null && auth.uid === $uid && (auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active') && ((newData.child('role').val() === 'member' && newData.child('status').val() === 'pending' && root.child('access/clubs').child($club).child('status').val() === 'approved') || (newData.child('role').val() === 'admin' && newData.child('status').val() === 'pending' && newData.parent().parent().parent().child('clubs').child($club).child('ownerUid').val() === auth.uid && newData.parent().parent().parent().child('clubs').child($club).child('status').val() === 'pending')))  || (data.exists() && ((auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && root.child('access/superadmins').child(auth.uid).val() === true) || (auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && root.child('access/clubs').child($club).child('status').val() === 'approved' && root.child('access/members').child($club).child(auth.uid).child('status').val() === 'approved' && root.child('access/members').child($club).child(auth.uid).child('role').val() === 'admin')) && ((auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && root.child('access/superadmins').child(auth.uid).val() === true) || data.child('role').val() !== 'admin' || $uid === auth.uid) && (($uid !== root.child('access/clubs').child($club).child('ownerUid').val() && root.child('access/clubs').child($club).child('status').val() === 'approved') || ((auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && root.child('access/superadmins').child(auth.uid).val() === true) && $uid === root.child('access/clubs').child($club).child('ownerUid').val() && newData.child('role').val() === 'admin' && (newData.child('status').val() === 'approved' || (root.child('access/clubs').child($club).child('status').val() === 'pending' && newData.child('status').val() === 'rejected'))))))",
+            ".validate": "newData.hasChildren(['username','displayName','role','status','createdAt'])",
+            "username": {
+              ".validate": "newData.val() === root.child('access/profiles').child($uid).child('username').val()"
+            },
+            "displayName": {
+              ".validate": "newData.val() === root.child('access/profiles').child($uid).child('displayName').val()"
+            },
+            "role": {
+              ".validate": "newData.isString() && newData.val().matches(/^(member|admin)$/)"
+            },
+            "status": {
+              ".validate": "newData.isString() && newData.val().matches(/^(pending|approved|rejected|removed)$/) && (newData.val() !== 'approved' || root.child('access/profiles').child($uid).child('status').val() === 'active')"
+            },
+            "createdAt": {
+              ".validate": "newData.isNumber() && (!data.exists() || newData.val() === data.val()) && (data.exists() || newData.val() <= now)"
+            },
+            "$other": {
+              ".validate": false
+            }
           }
         }
       }
     },
     "clubData": {
       "$club": {
-        ".read": "auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && (!root.child('access/profiles').child(auth.uid).child('validAfter').exists() || auth.token.auth_time >= root.child('access/profiles').child(auth.uid).child('validAfter').val()) && root.child('access/clubs').child($club).child('status').val() === 'approved' && (root.child('access/superadmins').child(auth.uid).val() === true || root.child('access/members').child($club).child(auth.uid).child('status').val() === 'approved')",
-        ".write": "auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && (!root.child('access/profiles').child(auth.uid).child('validAfter').exists() || auth.token.auth_time >= root.child('access/profiles').child(auth.uid).child('validAfter').val()) && root.child('access/clubs').child($club).child('status').val() === 'approved' && (root.child('access/superadmins').child(auth.uid).val() === true || root.child('access/members').child($club).child(auth.uid).child('status').val() === 'approved')",
+        ".read": "auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && root.child('access/clubs').child($club).child('status').val() === 'approved' && (root.child('access/superadmins').child(auth.uid).val() === true || root.child('access/members').child($club).child(auth.uid).child('status').val() === 'approved')",
+        ".write": "auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && root.child('access/clubs').child($club).child('status').val() === 'approved' && (root.child('access/superadmins').child(auth.uid).val() === true || root.child('access/members').child($club).child(auth.uid).child('status').val() === 'approved')",
         "$other": {
           ".validate": "$other === 'roster' || $other === 'stats' || $other === 'session' || $other === 'groupNames'"
         },
@@ -193,10 +264,17 @@
         }
       }
     },
-    "rateLimits": {
-      ".indexOn": [
-        "expiresAt"
-      ]
+    "roster": {
+      ".read": "(auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && root.child('access/superadmins').child(auth.uid).val() === true)"
+    },
+    "stats": {
+      ".read": "(auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && root.child('access/superadmins').child(auth.uid).val() === true)"
+    },
+    "session": {
+      ".read": "(auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && root.child('access/superadmins').child(auth.uid).val() === true)"
+    },
+    "groupNames": {
+      ".read": "(auth != null && root.child('access/profiles').child(auth.uid).child('status').val() === 'active' && root.child('access/superadmins').child(auth.uid).val() === true)"
     }
   }
 }

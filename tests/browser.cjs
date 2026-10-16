@@ -5,21 +5,24 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  const page=await browser.newPage({viewport:{width:390,height:844}});page.setDefaultTimeout(10000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.route('https://**/*',r=>r.fulfill({body:'',contentType:r.request().url().endsWith('.css')?'text/css':'application/javascript'}));
  let html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
- html=html.replace('<script src="club-auth.js"></script>','<script>'+fs.readFileSync(path.join(__dirname,'../club-auth.js'),'utf8')+'</script>');
+ html=html.replace('<script src="club-auth.js"></script>',()=>'<script>'+fs.readFileSync(path.join(__dirname,'../club-auth.js'),'utf8')+'</script>');
+ html=html.replace('<script src="spark-access.js"></script>',()=>'<script>'+fs.readFileSync(path.join(__dirname,'../spark-access.js'),'utf8')+'</script>');
  html=html.replace('<link rel="stylesheet" href="club-auth.css">','<style>'+fs.readFileSync(path.join(__dirname,'../club-auth.css'),'utf8')+'</style>');
  const mock=`
  window.mock={reads:[],subscriptions:{},callbacks:[],uid:'member',data:{'access/profiles/member':{username:'tester',displayName:'테스터',status:'active',clubs:{A:true,B:true}},'access/superadmins/member':false,'access/clubs/A':{name:'동호회 A',status:'approved',code:'AAAAAAAAAA'},'access/clubs/B':{name:'동호회 B',status:'approved',code:'BBBBBBBBBB'},'access/members/A/member':{status:'pending',role:'member'},'access/members/B/member':{status:'approved',role:'admin'},'clubData/A/roster':[{name:'가나다',gender:'남',level:'C'}],'clubData/B/roster':[{name:'라마바',gender:'여',level:'C'}]}};
  mock.snap=function(p){return {val:()=>mock.data[p]||null}};
  mock.emit=function(p,v){mock.data[p]=v;(mock.subscriptions[p]||[]).slice().forEach(cb=>cb(mock.snap(p)))};
  var authCallback;
- var auth={onAuthStateChanged:function(cb){authCallback=cb;cb(null)},signInWithCustomToken:function(){return Promise.resolve().then(()=>authCallback({uid:mock.uid}))},signOut:function(){authCallback(null);return Promise.resolve()}};
+ var auth={currentUser:null,onAuthStateChanged:function(cb){authCallback=cb;cb(null)},signInWithEmailAndPassword:function(email){mock.loginEmail=email;return Promise.resolve().then(()=>{auth.currentUser={uid:mock.uid,email:email};authCallback(auth.currentUser)})},signOut:function(){auth.currentUser=null;authCallback(null);return Promise.resolve()}};
  var database={ref:function(p){return {on:function(event,cb){mock.reads.push(p);mock.subscriptions[p]=mock.subscriptions[p]||[];mock.subscriptions[p].push(cb);mock.callbacks.push({p,cb});cb(mock.snap(p));},off:function(event,cb){mock.subscriptions[p]=cb?(mock.subscriptions[p]||[]).filter(x=>x!==cb):[];},once:function(){mock.reads.push(p);return Promise.resolve(mock.snap(p))},set:function(v){mock.emit(p,v);return Promise.resolve()},remove:function(){mock.emit(p,null);return Promise.resolve()}}}};
- window.firebase={apps:[],initializeApp:function(){this.apps.push({})},auth:()=>auth,database:()=>database,app:()=>({functions:()=>({httpsCallable:name=>data=>Promise.resolve({data:{token:'test-token'}})})})};
+ window.firebase={apps:[],initializeApp:function(){this.apps.push({})},auth:()=>auth,database:()=>database};
  `;
  html=html.replace('<script src="club-auth.js"></script>','');
  html=html.replace('<body>','<body><script>'+mock+'</script>');
  await page.setContent(html);await page.waitForFunction(()=>AUTH.ready);
  assert.equal(await page.locator('input[type=email]').count(),0);
+ assert.equal(await page.evaluate(()=>loginAddress('chease312')),'rnftm312@gmail.com');
+ assert.equal(await page.evaluate(()=>loginAddress('NewPlayer')),'newplayer@users.badminton.invalid');
  await page.locator('#username').fill('tester');await page.locator('#password').fill('password123');await page.locator('#portal-login button[type=submit]').click();
  await page.getByRole('heading',{name:'내 동호회'}).waitFor();
  assert.equal(await page.evaluate(()=>mock.reads.some(p=>p.startsWith('clubData/'))),false);

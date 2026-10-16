@@ -451,6 +451,7 @@ input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 <div id="toast"></div>
 <div id="app"></div>
 <script src="club-auth.js"></script>
+<script src="spark-access.js"></script>
 <script>
 // ══════════════════════════════════════════════════════════════════
 // 상수
@@ -703,7 +704,7 @@ function loadFirebase(){
     'https://cdn.jsdelivr.net/npm/firebase@8.10.1/',
     'https://unpkg.com/firebase@8.10.1/'
   ];
-  var files=['firebase-app.js','firebase-auth.js','firebase-database.js','firebase-functions.js'];
+  var files=['firebase-app.js','firebase-auth.js','firebase-database.js'];
   function attempt(index){
     if(index>=bases.length){
       AUTH.error='로그인 서비스에 연결하지 못했습니다. 인터넷 연결을 확인하고 다시 연결해 주세요.';
