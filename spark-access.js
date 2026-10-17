@@ -48,8 +48,12 @@ async function sparkManage(data){
  else throw Error('지원하지 않는 요청입니다.');
  await database.ref().update(updates);return {ok:true};
 }
+async function configureLoginPersistence(enabled){
+ await firebase.auth().setPersistence(enabled===true?'local':'session');
+ try{localStorage.setItem('badminton:autoLogin',String(enabled===true));}catch(e){}
+}
 async function callServer(name,data){
- if(name==='loginById'){await firebase.auth().signInWithEmailAndPassword(loginAddress(data.username),data.password);return {ok:true};}
+ if(name==='loginById'){await configureLoginPersistence(data.autoLogin);await firebase.auth().signInWithEmailAndPassword(loginAddress(data.username),data.password);return {ok:true};}
  if(name==='registerAccount'){
   data.displayName=String(data.displayName||'').trim();
   if(!data.displayName||data.displayName.length>40)throw Error('본인 이름을 1~40자로 입력해 주세요.');
@@ -57,6 +61,7 @@ async function callServer(name,data){
   if(String(data.username).toLowerCase()==='chease312')throw Error('이미 사용 중인 아이디입니다.');
   AUTH.registering=true;
   try{
+   await configureLoginPersistence(data.autoLogin);
    var credential=await firebase.auth().createUserWithEmailAndPassword(loginAddress(data.username),data.password);
    await credential.user.updateProfile({displayName:String(data.displayName||'').trim()});
    await completeProfile(data.displayName);
