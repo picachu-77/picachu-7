@@ -49,6 +49,7 @@ function watch(path,handler,list){
 function stopList(list){list.splice(0).forEach(function(stop){stop();});}
 function stopAdmin(){if(adminWatch){adminWatch();adminWatch=null;}AUTH.adminMembers={};AUTH.allAccess=null;}
 function resetClubData(){
+  if(typeof stopEventSchedule==='function')stopEventSchedule();
   authGeneration++;
   if(db)['roster','groupNames','stats','session'].forEach(function(path){db.ref(path).off();});
   db=null;boundClub=null;

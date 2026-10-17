@@ -456,6 +456,7 @@ input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 <script src="pwa.js"></script>
 <script src="club-auth.js"></script>
 <script src="spark-access.js"></script>
+<script src="match-events.js"></script>
 <script>
 // ══════════════════════════════════════════════════════════════════
 // 상수
@@ -581,6 +582,7 @@ function fbSaveRoster(){
 }
 function fbSaveGnames(){
   if(!db){return;}
+  if(EVENTS.selected){fbSaveSession();return;}
   db.ref('groupNames').set(S.groupNames).catch(function(){toast('저장 권한이나 연결을 확인해 주세요.');});
 }
 
@@ -590,13 +592,13 @@ function fbSaveSession(){
   var session={
     teams:S.teams, matches:S.matches, blockInfo:S.blockInfo,
     round:S.round, pairMode:S.pairMode, matchMode:S.matchMode,
-    numGames:S.numGames, numCourts:S.numCourts, selected:S.selected, playerGroups:S.playerGroups,
+    numGames:S.numGames, numCourts:S.numCourts, numRotations:S.numRotations, groups:S.groups, selected:S.selected, playerGroups:S.playerGroups,
     standby:S.standby, restCount:S.restCount, history:S.history,
     dup:S.dup, mStep:S.mStep, groupNames:S.groupNames, groupMode:S.groupMode,
     lateArrivals:S.lateArrivals, statsSaved:S.statsSaved,
     tSelected:S.tSelected, tTeams:S.tTeams, tBracket:S.tBracket, tStep:S.tStep
   };
-  db.ref('session').set(session).catch(function(){toast('저장 권한이나 연결을 확인해 주세요.');});
+  return eventSessionSave(session);
 }
 
 // 누적 전적 저장 (Firebase 'stats' + 로컬 폴백)
@@ -633,16 +635,13 @@ function fbListen(){
   },denied);
   db.ref('groupNames').on('value',function(snap){
     if(!active())return;
-    var data=snap.val();S.groupNames=Array.isArray(data)?data:['1그룹','2그룹'];render();
+    var data=snap.val();if(!EVENTS.selected)S.groupNames=Array.isArray(data)?data:['1그룹','2그룹'];render();
   },denied);
   db.ref('stats').on('value',function(snap){
     if(!active())return;
     var data=snap.val();S.career=data&&typeof data==='object'&&!Array.isArray(data)?data:{};render();
   },denied);
-  db.ref('session').once('value').then(function(snap){
-    if(!active())return;
-    var d=snap.val();if(d&&d.teams&&d.teams.length)showRestoreDialog(d);
-  }).catch(denied);
+  startEventSchedule();
 }
 
 // 세션 복구 확인 다이얼로그
@@ -677,7 +676,7 @@ function showRestoreDialog(d){
   };
   document.getElementById('restore-no').onclick=function(){
     dlg.parentNode.removeChild(dlg);
-    if(db) db.ref('session').remove();
+    if(db) eventClearSession();
   };
 }
 
@@ -2897,6 +2896,8 @@ function render(){
   var bodyHtml='';
   if(S.tab==='roster'){
     bodyHtml=rosterHtml();
+  } else if(!EVENTS.selected||!eventCanOpen(EVENTS.items[EVENTS.selected])){
+    bodyHtml=eventListHtml();
   } else if(S.tab==='tour'){
     var tContent=(S.tStep===2)?tStep2Html():tStep1Html();
     bodyHtml='<div class="card'+(S.tStep===2?'':' narrow')+'">'+tContent+'</div>';
@@ -2921,11 +2922,12 @@ function render(){
       +'<button class="theme-btn" data-a="thm" aria-label="화면 밝기 바꾸기">'+themeIcon+'</button>'
     +'</div>'
     +accountBar()
+    +eventBar()
     +'<div class="tabs">'+tabRoster+tabMatch+tabTour+'</div>'
     +'<div class="content">'+bodyHtml+'</div>'
     +'</div>';
 
-  bindPortal();
+  bindPortal();bindEventForms();
 
   // 포커스
   var ni=document.getElementById('rni');
@@ -3193,6 +3195,8 @@ function doSwap(keyA,keyB){
 }
 
 function act(a,d){
+  if(EVENTS.selected&&!eventCanOpen(EVENTS.items[EVENTS.selected])){eventTick();return;}
+  if(S.tab!=='roster'&&!EVENTS.selected&&!['gotab','thm'].includes(a))return;
   if(!clubCanUse()) return;
   d=d||{};
 
@@ -3472,7 +3476,7 @@ function act(a,d){
     S.history=[];S.round=1;S.dup=false;S.numGames=0;S.numCourts=1;S.matchMode='rotation';S.numRotations=10;S.groups={};S.groupNames=['1그룹','2그룹'];S.playerGroups={};S.restCount={};S.blockInfo=[];S.attendSearch='';S.groupMode='any';S.lateArrivals={};
     S.statsSaved=false;S.recView='today';S.setupOpen=false;S.showFair=false; // 누적 전적(S.career)은 유지
     S.mStep=1;
-    if(db) db.ref('session').remove(); // Firebase에서 세션 삭제
+    if(db) eventClearSession(); // Firebase에서 세션 삭제
     render();
   }
 }

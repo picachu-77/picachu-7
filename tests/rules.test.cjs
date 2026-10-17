@@ -55,3 +55,10 @@ test('only designated existing account can bootstrap the first global owner',asy
 test('synthetic reserved username cannot impersonate original owner',async()=>{
  await assertFails(set(ref(db('attacker',{email:'chease312@users.badminton.invalid'}),'access/profiles/attacker'),{username:'chease312',displayName:'fake',status:'active',createdAt:1}));
 });
+test('scheduled meetings support independent deep match data and isolated cleanup',async()=>{
+ const base='clubData/'+C+'/session/events/';
+ const meeting={title:'토요 대진',place:'시민체육관',ownerUid:'a',startAt:1,endAt:2,createdAt:1,state:{teams:[{id:1,p1:{name:'홍길동'},p2:{name:'김철수'}}],tBracket:[[{t1:{p1:{name:'홍길동'}}}]]}};
+ await assertSucceeds(set(ref(db('a'),base+'one'),meeting));await assertSucceeds(set(ref(db('a'),base+'two'),{...meeting,place:'다른 체육관'}));
+ await assertFails(get(ref(db('b'),base+'one')));await assertFails(set(ref(db('pending'),base+'one'),null));
+ await assertSucceeds(set(ref(db('a'),base+'one'),null));const other=await get(ref(db('a'),base+'two'));assert.equal(JSON.parse(other.body).place,'다른 체육관');
+});
