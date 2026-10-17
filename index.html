@@ -456,6 +456,7 @@ input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 <script src="pwa.js"></script>
 <script src="club-auth.js"></script>
 <script src="spark-access.js"></script>
+<script src="match-results.js"></script>
 <script src="match-events.js"></script>
 <script>
 // ══════════════════════════════════════════════════════════════════
@@ -2893,8 +2894,11 @@ function render(){
   var tabMatch='<button class="tab'+(S.tab==='match'?' active':'')+'" data-a="gotab" data-v="match">🏸 매치</button>';
   var tabTour='<button class="tab'+(S.tab==='tour'?' active':'')+'" data-a="gotab" data-v="tour">🏆 토너먼트</button>';
 
+  var tabResults='<button class="tab'+(S.tab==='results'?' active':'')+'" data-a="gotab" data-v="results">📊 전적</button>';
   var bodyHtml='';
-  if(S.tab==='roster'){
+  if(S.tab==='results'){
+    bodyHtml=matchResultsHtml();
+  } else if(S.tab==='roster'){
     bodyHtml=rosterHtml();
   } else if(!EVENTS.selected||!eventCanOpen(EVENTS.items[EVENTS.selected])){
     bodyHtml=eventListHtml();
@@ -2922,8 +2926,8 @@ function render(){
       +'<button class="theme-btn" data-a="thm" aria-label="화면 밝기 바꾸기">'+themeIcon+'</button>'
     +'</div>'
     +accountBar()
-    +eventBar()
-    +'<div class="tabs">'+tabRoster+tabMatch+tabTour+'</div>'
+    +(S.tab==='results'?'':eventBar())
+    +'<div class="tabs">'+tabRoster+tabMatch+tabTour+tabResults+'</div>'
     +'<div class="content">'+bodyHtml+'</div>'
     +'</div>';
 

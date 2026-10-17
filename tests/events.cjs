@@ -7,7 +7,7 @@ function setup(){
  const database={ref(path){return {on(type,cb){listeners[path]=cb;cb({val:()=>read(path)});},off(){delete listeners[path];},push(){return {key:'event'+(++count)};},async update(values){for(const [key,value]of Object.entries(values))put(path+'/'+key,value);},async remove(){put(path,null);},async transaction(fn){transactions.push(path);const result=fn(copy(read(path)));if(result!==undefined)put(path,result);return {committed:result!==undefined};}};}};
  const initial={theme:'light',tab:'match',roster:[],career:{},teams:[],matches:[],selected:{},groupNames:['1','2'],tTeams:[],mStep:1};
  class Clock extends Date{static now(){return now;}}
- const c={Date:Clock,Intl,Number,JSON,Promise,Object,String,Error,console,AUTH:{user:{uid:'owner'},clubId:'A'},authGeneration:1,initialAppState:JSON.stringify(initial),S:copy(initial),db:database,rawDb:database,document:{addEventListener(){}},window:{addEventListener(){}},setTimeout:()=>1,clearTimeout(){},clubCanUse:()=>true,canManageClub:()=>false,authEscape:String,field:()=>'',render(){},toast(){},confirm:()=>true};vm.createContext(c);vm.runInContext(fs.readFileSync('match-events.js','utf8'),c);
+ const c={Date:Clock,Intl,Number,JSON,Promise,Object,String,Error,console,AUTH:{user:{uid:'owner'},clubId:'A'},authGeneration:1,initialAppState:JSON.stringify(initial),S:copy(initial),db:database,rawDb:database,document:{addEventListener(){}},window:{addEventListener(){}},setTimeout:()=>1,clearTimeout(){},clubCanUse:()=>true,canManageClub:()=>false,authEscape:String,field:()=>'',render(){},toast(){},confirm:()=>true};vm.createContext(c);vm.runInContext(fs.readFileSync('match-results.js','utf8'),c);vm.runInContext(fs.readFileSync('match-events.js','utf8'),c);
  c.EVENTS.timeReady=true;c.EVENTS.loaded=true;c.EVENTS.connected=true;c.EVENTS.items=data.session.events={};c.S.roster=[{name:'회원'}];c.S.career={회원:{w:3}};
  return {c,data,transactions,setNow:v=>{now=v;},getNow:()=>now,put,listeners};
 }
@@ -21,3 +21,25 @@ test('a delayed save cannot recreate a removed meeting or write beyond end',asyn
 test('invalid schedule never creates data',async()=>{const a=setup();for(const input of [{title:'',place:'A',start:'2026-10-17T09:00',end:'2026-10-17T11:00'},{title:'A',place:'A',start:'2026-10-17T11:00',end:'2026-10-17T10:00'},{title:'A',place:'A',start:'2026-10-16T09:00',end:'2026-10-16T11:00'}])await assert.rejects(a.c.createMatchEvent(input));assert.equal(Object.keys(a.data.session.events).length,0);});
 test('legacy import preserves originals and unrelated events',async()=>{const a=setup(),c=a.c;a.data.session.teams=[{name:'기존팀'}];a.data.session.events.existing=schedule(a.getNow());c.EVENTS.legacy={teams:a.data.session.teams};const id=await c.createMatchEvent({title:'기존 대진',place:'체육관',start:'2026-10-17T09:00',end:'2026-10-17T11:00',importLegacy:true});assert.equal(a.data.session.events[id].state.teams[0].name,'기존팀');assert.equal(a.data.session.teams[0].name,'기존팀');assert.equal(a.data.session.legacyImported,true);assert.ok(a.data.session.events.existing);});
 test('logout/club switch detaches schedule watchers and resets identity-scoped data',()=>{const a=setup(),c=a.c;c.startEventSchedule();assert.ok(Object.keys(a.listeners).length);c.stopEventSchedule();assert.equal(Object.keys(a.listeners).length,0);assert.equal(Object.keys(c.EVENTS.items).length,0);assert.equal(c.EVENTS.selected,null);});
+function resultFixture(now){return {...schedule(now),state:{teams:[{id:1,p1:{name:'가람'},p2:{name:'나래'}},{id:2,p1:{name:'다온'},p2:{name:'라온'}}],matches:[{id:1,t1:1,t2:2,s1:21,s2:15,done:true,blockNum:1,court:1},{id:2,t1:1,t2:2,s1:21,s2:0,done:true,blockNum:2,court:1},{id:3,t1:1,t2:2,s1:'',s2:'',blockNum:3},{id:4,t1:1,t2:2,s1:5,s2:3,inProgress:true},{id:5,t1:1,t2:2,s1:20,s2:20,done:true}]}};}
+test('scores, zero points, incomplete games and joint win rankings are accurate',()=>{
+ const a=setup(),result=a.c.buildMatchResult(resultFixture(a.getNow()),a.getNow()),rows=a.c.resultStandings(result.games);
+ assert.equal(result.games.length,5);assert.equal(result.games[1].score2,0);assert.equal(result.games[2].status,'unscored');assert.equal(result.games[3].status,'unfinished');
+ assert.equal(rows.length,4);const winner=rows.find(p=>p.name==='가람');assert.equal(winner.w,2);assert.equal(winner.d,1);assert.equal(winner.g,3);assert.equal(winner.rate,67);assert.equal(rows[0].rank,1);assert.equal(rows[1].rank,1);assert.equal(rows[2].w,0);
+});
+test('archive and expiry deletion commit together and repeated cleanup never doubles results',async()=>{
+ const a=setup(),c=a.c,t=a.getNow();a.data.session.events.finished={...resultFixture(t),endAt:t};a.data.session.events.live=schedule(t);
+ await c.finishMatchEvent('finished','expired');assert.equal(a.data.session.events.finished,undefined);assert.ok(a.data.session.events.live);assert.equal(a.data.session.results.finished.games[0].score1,21);assert.equal(a.data.session.results.finished.games[0].score2,15);
+ await c.finishMatchEvent('finished','expired');assert.equal(Object.keys(a.data.session.results).length,1);assert.equal(c.S.career.회원.w,3);
+});
+test('failed archive transaction leaves the event available for retry',async()=>{
+ const a=setup(),c=a.c,t=a.getNow();a.data.session.events.finished={...resultFixture(t),endAt:t};c.db={ref:()=>({transaction:async()=>{throw Error('offline');}})};
+ await assert.rejects(c.finishMatchEvent('finished','expired'));assert.ok(a.data.session.events.finished);assert.equal(a.data.session.results,undefined);
+});
+test('early finish requires creator/admin; deleting a scored schedule preserves its results',async()=>{
+ const a=setup(),c=a.c,t=a.getNow();a.data.session.events.one=resultFixture(t);c.AUTH.user.uid='other';await c.finishMatchEvent('one','finish');assert.ok(a.data.session.events.one);c.AUTH.user.uid='owner';await c.finishMatchEvent('one','delete');assert.equal(a.data.session.events.one,undefined);assert.ok(a.data.session.results.one);
+});
+test('tournament byes, mismatched winners and unrecorded scores do not add wins',()=>{
+ const a=setup(),c=a.c,t=a.getNow(),event=resultFixture(t),left=event.state.teams[0],right=event.state.teams[1];event.state.matches=[];event.state.tBracket=[[{t1:left,t2:null,bye:true,winner:left},{t1:left,t2:right,score1:'21',score2:'10',winner:right},{t1:left,t2:right,score1:'21',score2:'10',winner:left}]];
+ const result=c.buildMatchResult(event,t);assert.equal(result.games[0].status,'bye');assert.equal(result.games[1].status,'invalid');assert.equal(result.games[2].status,'scored');const rows=c.resultStandings(result.games);assert.equal(rows[0].w,1);assert.equal(rows[0].g,1);
+});
