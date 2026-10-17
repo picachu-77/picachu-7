@@ -62,3 +62,15 @@ test('scheduled meetings support independent deep match data and isolated cleanu
  await assertFails(get(ref(db('b'),base+'one')));await assertFails(set(ref(db('pending'),base+'one'),null));
  await assertSucceeds(set(ref(db('a'),base+'one'),null));const other=await get(ref(db('a'),base+'two'));assert.equal(JSON.parse(other.body).place,'다른 체육관');
 });
+test('results archival and event removal are atomic and remain club-scoped',async()=>{
+ const base='clubData/'+C+'/session';
+ const event={title:'저녁 모임',place:'시민체육관',startAt:1,endAt:2,ownerUid:'a'};
+ await assertSucceeds(set(ref(db('a'),base+'/events/finished'),event));
+ const result={title:'저녁 모임',place:'시민체육관',startAt:1,endAt:2,completedAt:3,games:[{label:'게임 1',left:['가람','나래'],right:['다온','라온'],score1:21,score2:15,status:'scored'}]};
+ await assertFails(patch('a',{[base+'/events/finished']:null,[base+'/results/finished']:{...result,title:'<script>'}}));
+ assert.equal(JSON.parse((await get(ref(db('a'),base+'/events/finished'))).body).title,'저녁 모임');
+ await assertSucceeds(patch('a',{[base+'/events/finished']:null,[base+'/results/finished']:result}));
+ assert.equal(JSON.parse((await get(ref(db('a'),base+'/events/finished'))).body),null);
+ assert.equal(JSON.parse((await get(ref(db('a'),base+'/results/finished'))).body).games[0].score1,21);
+ for(const user of ['b','pending','removed'])await assertFails(get(ref(db(user),base+'/results/finished')));
+});

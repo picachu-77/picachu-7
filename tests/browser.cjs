@@ -6,6 +6,7 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  await page.route('https://**/*',r=>r.fulfill({body:'',contentType:r.request().url().endsWith('.css')?'text/css':'application/javascript'}));
  let html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
  html=html.replace('<script src="club-auth.js"></script>',()=>'<script>'+fs.readFileSync(path.join(__dirname,'../club-auth.js'),'utf8')+'</script>');
+ html=html.replace('<script src="match-results.js"></script>',()=>'<script>'+fs.readFileSync(path.join(__dirname,'../match-results.js'),'utf8')+'</script>');
  html=html.replace('<script src="match-events.js"></script>',()=>'<script>'+fs.readFileSync(path.join(__dirname,'../match-events.js'),'utf8')+'</script>');
  html=html.replace('<script src="spark-access.js"></script>',()=>'<script>'+fs.readFileSync(path.join(__dirname,'../spark-access.js'),'utf8')+'</script>');
  html=html.replace('<link rel="stylesheet" href="club-auth.css">','<style>'+fs.readFileSync(path.join(__dirname,'../club-auth.css'),'utf8')+'</style>');
@@ -68,6 +69,10 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  await page.locator('[data-event-action=open][data-event-id=one]').click();assert.equal(await page.evaluate(()=>S.numCourts),2);
  await page.locator('[data-event-action=list]').click();await page.locator('[data-event-action=open][data-event-id=two]').click();assert.equal(await page.evaluate(()=>S.numCourts),4);
  await page.evaluate(()=>{EVENTS.offset=7200000;eventTick();});await page.getByRole('heading',{name:'대진 일정',exact:true}).waitFor();assert.equal(await page.locator('[data-event-action=open]').count(),0);assert.equal(await page.evaluate(()=>S.matches.length),0);
+ await page.evaluate(()=>{const now=Date.now();mock.emit('clubData/A/session',{results:{finished:{title:'토요일 모임',place:'시민체육관',startAt:now-7200000,endAt:now-3600000,completedAt:now,games:[{label:'게임 1 · 1코트',left:['가람','나래'],right:['다온','라온'],score1:21,score2:15,status:'scored'}]}}});});
+ await page.locator('[data-a=gotab][data-v=results]').click();await page.getByRole('heading',{name:'종료된 경기 전적'}).waitFor();
+ await page.getByRole('button',{name:'점수·순위 보기'}).click();await page.getByRole('heading',{name:'경기별 점수'}).waitFor();assert.equal(await page.locator('.result-score strong').innerText(),'21 : 15');assert.match(await page.locator('.content').innerText(),/최다승: 가람, 나래 · 1승/);
+ await page.getByRole('button',{name:'← 전체 전적'}).click();await page.getByRole('heading',{name:'종료된 경기 전적'}).waitFor();
  assert.deepEqual(errors,[]);
  console.log('PASS: automatic club home, remembered club, settings navigation, ID login, pending gate, club isolation, stale callbacks, removal, admin demotion, XSS escaping, account suspension, logout');
  }finally{await browser.close();}
