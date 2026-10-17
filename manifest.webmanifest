@@ -1,0 +1,16 @@
+{
+  "id": "./",
+  "name": "피카츄의 배드민턴매치",
+  "short_name": "배드민턴",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f8f6",
+  "theme_color": "#0e7c4a",
+  "description": "내 동호회의 명단과 배드민턴 경기를 관리하세요.",
+  "icons": [
+    {"src": "icons/app-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icons/app-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}
