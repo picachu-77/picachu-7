@@ -10,7 +10,17 @@
   "theme_color": "#0e7c4a",
   "description": "내 동호회의 명단과 배드민턴 경기를 관리하세요.",
   "icons": [
-    {"src": "icons/app-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
-    {"src": "icons/app-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+    {
+      "src": "icons/pikachu-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/pikachu-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ]
 }
