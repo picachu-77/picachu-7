@@ -15,7 +15,7 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  mock.snap=function(p){return {val:()=>mock.data[p]||null}};
  mock.emit=function(p,v){mock.data[p]=v;(mock.subscriptions[p]||[]).slice().forEach(cb=>cb(mock.snap(p)))};
  var authCallback;
- var auth={currentUser:null,onAuthStateChanged:function(cb){authCallback=cb;cb(null)},signInWithEmailAndPassword:function(email){mock.loginEmail=email;return Promise.resolve().then(()=>{auth.currentUser={uid:mock.uid,email:email};authCallback(auth.currentUser)})},signOut:function(){auth.currentUser=null;authCallback(null);return Promise.resolve()}};
+ var auth={currentUser:null,setPersistence:function(mode){mock.persistence=mode;return Promise.resolve()},onAuthStateChanged:function(cb){authCallback=cb;cb(null)},signInWithEmailAndPassword:function(email){mock.loginEmail=email;return Promise.resolve().then(()=>{auth.currentUser={uid:mock.uid,email:email};authCallback(auth.currentUser)})},signOut:function(){auth.currentUser=null;authCallback(null);return Promise.resolve()}};
  var database={ref:function(p){return {on:function(event,cb){mock.reads.push(p);mock.subscriptions[p]=mock.subscriptions[p]||[];mock.subscriptions[p].push(cb);mock.callbacks.push({p,cb});cb(mock.snap(p));},off:function(event,cb){mock.subscriptions[p]=cb?(mock.subscriptions[p]||[]).filter(x=>x!==cb):[];},once:function(){mock.reads.push(p);return Promise.resolve(mock.snap(p))},set:function(v){mock.emit(p,v);return Promise.resolve()},remove:function(){mock.emit(p,null);return Promise.resolve()}}}};
  window.firebase={apps:[],initializeApp:function(){this.apps.push({})},auth:()=>auth,database:()=>database};
  `;
@@ -26,8 +26,8 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  assert.equal(await page.evaluate(()=>accountDisplayName({username:'chease312',displayName:'chease312'})),'최승현');
  assert.equal(await page.evaluate(()=>loginAddress('chease312')),'rnftm312@gmail.com');
  assert.equal(await page.evaluate(()=>loginAddress('NewPlayer')),'newplayer@users.badminton.invalid');
- await page.locator('#username').fill('tester');await page.locator('#password').fill('password123');await page.locator('#portal-login button[type=submit]').click();
- await page.getByRole('heading',{name:'내 동호회'}).waitFor();
+ await page.locator('#auto-login').check();await page.locator('#username').fill('tester');await page.locator('#password').fill('password123');await page.locator('#portal-login button[type=submit]').click();
+ await page.getByRole('heading',{name:'내 동호회'}).waitFor();assert.equal(await page.evaluate(()=>mock.persistence),'local');
  assert.equal(await page.evaluate(()=>mock.reads.some(p=>p.startsWith('clubData/'))),false);
  assert.equal(await page.locator('[data-portal=open][data-club=A]').count(),0);
  await page.evaluate(()=>mock.emit('access/members/A/member',{status:'approved',role:'member'}));
@@ -43,8 +43,9 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  await page.evaluate(()=>mock.callbacks.find(x=>x.p==='clubData/A/roster').cb({val:()=>[{name:'stale'}]}));
  assert.equal(await page.evaluate(()=>S.roster[0].name),'라마바');
  await page.locator('[data-portal=clubs]').click();await page.locator('[data-portal=logout]').click();
+ await page.locator('#auto-login').uncheck();
  await page.locator('#username').fill('tester');await page.locator('#password').fill('password123');await page.locator('#portal-login button[type=submit]').click();
- await page.waitForFunction(()=>AUTH.view==='app'&&AUTH.clubId==='B');
+ await page.waitForFunction(()=>AUTH.view==='app'&&AUTH.clubId==='B');assert.equal(await page.evaluate(()=>mock.persistence),'session');
  await page.evaluate(()=>mock.emit('access/members/B/member',{status:'removed',role:'member'}));
  await page.getByRole('heading',{name:'내 동호회'}).waitFor();assert.equal(await page.evaluate(()=>S.roster.length),0);
  await page.evaluate(()=>mock.emit('access/members/A/member',{status:'approved',role:'admin'}));

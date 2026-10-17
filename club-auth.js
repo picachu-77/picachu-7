@@ -1,5 +1,7 @@
 /* Account and club portal. Permissions are enforced by DB rules. */
 var AUTH={ready:false,user:null,profile:null,profileLoaded:false,superadmin:false,busy:false,error:'',message:'',mode:'login',username:'',view:'home',clubId:null,clubs:{},memberships:{},adminMembers:{},allAccess:null};
+AUTH.autoLogin=false;
+try{AUTH.autoLogin=localStorage.getItem('badminton:autoLogin')==='true';}catch(e){}
 var authGeneration=0,identityGeneration=0,rawDb=null,accessWatches=[],clubWatches=[],adminWatch=null,boundClub=null;
 function authEscape(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function authError(e){
@@ -19,6 +21,7 @@ function renderAuth(){
       +'<label class="portal-field" for="signup-kind">가입 방법<select class="inp" id="signup-kind"'+disabled+'><option value="join">동호회 코드로 가입 신청</option><option value="create">새 동호회 생성 신청</option></select></label>'
       +'<div id="signup-join">'+field('signup-code','동호회 코드','text','required maxlength="10" autocapitalize="characters"'+disabled)+'</div>'
       +'<div id="signup-create" hidden>'+field('signup-name','새 동호회 이름','text','maxlength="60"'+disabled)+'</div><p class="sub">동호회 가입은 동호회 관리자가, 신규 동호회는 총관리자가 승인합니다.</p>':'')
+    +'<label style="display:flex;align-items:center;gap:10px;margin:16px 0;min-height:44px;cursor:pointer"><input id="auto-login" type="checkbox"'+(AUTH.autoLogin?' checked':'')+disabled+'>자동 로그인</label><p class="sub">체크하면 이 기기에서 다음에도 로그인 상태를 유지합니다.</p>'
     +notice()+(!AUTH.ready&&!AUTH.error?'<p role="status">로그인 서비스를 연결하고 있어요.</p>':'')
     +'<button class="btn pri" type="submit" style="width:100%"'+disabled+'>'+(AUTH.busy?'처리 중…':signup?'가입 신청':'로그인')+'</button></form><div class="brow portal-gap">'
     +button(signup?'로그인으로 돌아가기':'회원가입','auth-mode','data-mode="'+(signup?'login':'signup')+'"')+(typeof installControl==='function'?installControl():'')+'</div>'
@@ -26,12 +29,13 @@ function renderAuth(){
     +(!AUTH.ready&&AUTH.error?button('다시 연결','reload'):'')+'</section></main>';
   bindPortal();
   document.getElementById('portal-login').onsubmit=submitAuth;
+  document.getElementById('auto-login').onchange=function(){AUTH.autoLogin=this.checked;};
   var kind=document.getElementById('signup-kind');if(kind)kind.onchange=function(){var create=this.value==='create';document.getElementById('signup-join').hidden=create;document.getElementById('signup-create').hidden=!create;document.getElementById('signup-code').required=!create;document.getElementById('signup-name').required=create;};
 }
 function submitAuth(e){
   e.preventDefault();if(!AUTH.ready||AUTH.busy)return;
   var username=document.getElementById('username').value.trim().toLowerCase(),password=document.getElementById('password').value;
-  AUTH.username=username;var data={username:username,password:password},signup=AUTH.mode==='signup';
+  AUTH.username=username;AUTH.autoLogin=document.getElementById('auto-login').checked;var data={username:username,password:password,autoLogin:AUTH.autoLogin},signup=AUTH.mode==='signup';
   if(signup){
     if(password!==document.getElementById('password-confirm').value){AUTH.error='비밀번호가 서로 다릅니다.';document.querySelector('.portal-notice').textContent=AUTH.error;document.querySelector('.portal-notice').setAttribute('role','alert');return;}
     data.displayName=document.getElementById('display-name').value.trim();
